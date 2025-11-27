@@ -16,7 +16,7 @@ export const DashboardPage = () => {
 
   useEffect(() => {
     refreshBuses()
-    const interval = setInterval(refreshBuses, 3000)
+    const interval = setInterval(refreshBuses, 10000)
     return () => clearInterval(interval)
   }, [refreshBuses])
 
