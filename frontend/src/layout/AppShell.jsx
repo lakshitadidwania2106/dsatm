@@ -22,7 +22,7 @@ export const AppShell = ({ children }) => {
           <NavLink to="/" end>
             Map
           </NavLink>
-          <NavLink to="/feedback">Feedback</NavLink>
+          <NavLink to="/carpool">Carpool</NavLink>
           <NavLink to="/accessibility">Accessibility</NavLink>
         </nav>
         <div className="header-actions">
