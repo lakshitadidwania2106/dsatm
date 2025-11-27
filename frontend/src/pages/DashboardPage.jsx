@@ -16,7 +16,11 @@ export const DashboardPage = () => {
 
   useEffect(() => {
     refreshBuses()
+<<<<<<< HEAD
     const interval = setInterval(refreshBuses, 30000)
+=======
+    const interval = setInterval(refreshBuses, 10000)
+>>>>>>> a1bec14928c70aacff08ab78572e12f730c5c734
     return () => clearInterval(interval)
   }, [refreshBuses])
 
@@ -28,7 +32,11 @@ export const DashboardPage = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         }),
+<<<<<<< HEAD
       () => {},
+=======
+      () => { },
+>>>>>>> a1bec14928c70aacff08ab78572e12f730c5c734
       { enableHighAccuracy: true },
     )
   }, [setUserLocation])

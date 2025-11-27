@@ -43,6 +43,8 @@ export const useAppStore = create((set, get) => ({
   sttEnabled: true,
   ttsEnabled: true,
   accessibilityMode: false,
+  userRole: null,
+  isLoggedIn: false,
   accessibilityFilters: {
     wheelchair: false,
     ramps: false,
@@ -61,10 +63,23 @@ export const useAppStore = create((set, get) => ({
   error: null,
   cityStops,
   routePreview: null,
+  driverProfile: {
+    name: 'Rajesh Kumar',
+    busNumber: 'DL-01-AB-1234',
+    route: 'Connaught Place → Gurgaon',
+    routeId: 'CP-GGN-001',
+    licenseNumber: 'DL1234567890',
+    phone: '+91 98765 43210',
+  },
+  isSharingLocation: false,
 
+  setUserRole: (role) => set({ userRole: role, isLoggedIn: true }),
+  logout: () => set({ userRole: null, isLoggedIn: false }),
   setLanguage: (language) => set({ language }),
   setFontScale: (fontScale) => set({ fontScale }),
   toggleHighContrast: () => set((state) => ({ highContrast: !state.highContrast })),
+  setDriverProfile: (profile) => set({ driverProfile: { ...get().driverProfile, ...profile } }),
+  toggleLocationSharing: () => set((state) => ({ isSharingLocation: !state.isSharingLocation })),
   setSpeechPreferences: (preferences = {}) =>
     set((state) => ({
       sttEnabled: preferences.sttEnabled ?? state.sttEnabled,
