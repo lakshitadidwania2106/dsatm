@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import MarkerClusterGroup from 'react-leaflet-cluster'
 import { useI18n } from '../hooks/useI18n'
 import { useAppStore } from '../store/useAppStore'
 
@@ -36,9 +35,7 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
     })
   }, [])
 
-  // Removed Delhi Metro logic; defaulting to specific coords (Bengaluru) if user location is unavailable
-  const defaultCenter = [12.9716, 77.5946]
-  const center = userLocation ? [userLocation.lat, userLocation.lng] : defaultCenter
+  const center = userLocation ? [userLocation.lat, userLocation.lng] : [12.9716, 77.5946]
 
   return (
     <div className="map-card">
@@ -55,13 +52,11 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
         <MapContainer center={center} zoom={13} scrollWheelZoom className="leaflet-root">
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <MapAutoCenter center={center} />
-
           {userLocation && (
             <CircleMarker center={[userLocation.lat, userLocation.lng]} pathOptions={userMarker}>
               <Popup>{t('locating')}</Popup>
             </CircleMarker>
           )}
-
           {routePreview?.coordinates && (
             <>
               <Polyline positions={routePreview.coordinates} pathOptions={{ color: '#2563eb', weight: 6 }} />
@@ -77,30 +72,25 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
               />
             </>
           )}
-
-
-          <MarkerClusterGroup chunkedLoading>
-            {stops?.map((stop) => (
-              <CircleMarker
-                key={`stop-${stop.id}`}
-                center={[stop.lat, stop.lng]}
-                pathOptions={{
-                  color: '#ef4444',
-                  fillColor: '#ef4444',
-                  fillOpacity: 0.6,
-                  weight: 1
-                }}
-                radius={4}
-              >
-                <Popup>
-                  <strong>{stop.name}</strong>
-                  <br />
-                  ID: {stop.id}
-                </Popup>
-              </CircleMarker>
-            ))}
-          </MarkerClusterGroup>
-
+          {stops?.map((stop) => (
+            <CircleMarker
+              key={`stop-${stop.id}`}
+              center={[stop.lat, stop.lng]}
+              pathOptions={{
+                color: '#ef4444',
+                fillColor: '#ef4444',
+                fillOpacity: 0.6,
+                weight: 1
+              }}
+              radius={4}
+            >
+              <Popup>
+                <strong>{stop.name}</strong>
+                <br />
+                ID: {stop.id}
+              </Popup>
+            </CircleMarker>
+          ))}
           {buses.map((bus) => (
             <CircleMarker
               key={bus.id}
@@ -126,6 +116,7 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
           ))}
         </MapContainer>
       </div>
-    </div >
+    </div>
   )
 }
+
