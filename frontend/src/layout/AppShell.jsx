@@ -21,13 +21,11 @@ export const AppShell = ({ children }) => {
           <NavLink to="/" end>
             {t('mapNav')}
           </NavLink>
-<<<<<<< HEAD
-          <NavLink to="/carpool">Carpool</NavLink>
-          <NavLink to="/accessibility">Accessibility</NavLink>
-=======
+
+
           <NavLink to="/carpool">{t('carpoolNav')}</NavLink>
           <NavLink to="/accessibility">{t('accessibilityNav')}</NavLink>
->>>>>>> e2334fe94ba052a26343e54887915823ec58d2e7
+
         </nav>
         <div className="header-actions">
           <label>
