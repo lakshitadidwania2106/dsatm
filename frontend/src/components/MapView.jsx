@@ -1,18 +1,33 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useI18n } from '../hooks/useI18n'
 import { useAppStore } from '../store/useAppStore'
+import { SmoothBusMarker } from './SmoothBusMarker'
 import { delhiMetroStations, delhiMetroLineColors } from '../data/delhiMetro'
 
-const MapAutoCenter = ({ center }) => {
+const MapController = ({ center, selectedBus }) => {
   const map = useMap()
+  const isFirstLoad = useRef(true)
+
   useEffect(() => {
-    if (center) {
+    // Scenario A: First load - Center the map
+    if (isFirstLoad.current && center) {
       map.setView(center, 14)
+      isFirstLoad.current = false
+      return
     }
-  }, [center, map])
+
+    // Scenario B: User clicked a specific bus - Fly to it
+    if (selectedBus) {
+      map.flyTo([selectedBus.lat, selectedBus.lng], 15, { animate: true })
+    }
+
+    // We REMOVED the logic that blindly calls setView on every update.
+    // The map will now stay where the user dragged it, even if data updates.
+  }, [center, map, selectedBus])
+
   return null
 }
 
@@ -36,6 +51,9 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
     })
   }, [])
 
+  // Default center
+  const defaultCenter = [12.9716, 77.5946]
+  const mapCenter = userLocation ? [userLocation.lat, userLocation.lng] : defaultCenter
   const defaultMetroCenter = delhiMetroStations.length
     ? [delhiMetroStations[0].latitude, delhiMetroStations[0].longitude]
     : [12.9716, 77.5946]
@@ -55,9 +73,9 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
         )}
       </header>
       <div className="map-container">
-        <MapContainer center={center} zoom={13} scrollWheelZoom className="leaflet-root">
+        <MapContainer center={mapCenter} zoom={13} scrollWheelZoom className="leaflet-root">
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <MapAutoCenter center={center} />
+          <MapController center={mapCenter} selectedBus={selectedBus} />
           {userLocation && (
             <CircleMarker center={[userLocation.lat, userLocation.lng]} pathOptions={userMarker}>
               <Popup>{t('locating')}</Popup>
@@ -112,27 +130,12 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
             )
           })}
           {buses.map((bus) => (
-            <CircleMarker
+            <SmoothBusMarker
               key={bus.id}
-              center={[bus.lat, bus.lng]}
-              pathOptions={{
-                color: selectedBus?.id === bus.id ? '#16a34a' : '#0f172a',
-                fillColor: '#0f172a',
-                fillOpacity: 0.8,
-              }}
-              radius={8}
-              eventHandlers={{
-                click: () => onSelectBus(bus),
-              }}
-            >
-              <Popup>
-                <strong>{bus.route}</strong>
-                <br />
-                {t('eta')}: {bus.eta}
-                <br />
-                {t('cost')}: {bus.cost}
-              </Popup>
-            </CircleMarker>
+              bus={bus}
+              isSelected={selectedBus?.id === bus.id}
+              onSelect={onSelectBus}
+            />
           ))}
         </MapContainer>
         <div className="map-legend">
