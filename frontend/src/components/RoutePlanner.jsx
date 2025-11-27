@@ -16,6 +16,8 @@ export const RoutePlanner = () => {
   const planRoute = useAppStore((state) => state.planRoute)
   const setSelectedBus = useAppStore((state) => state.setSelectedBus)
   const cityStops = useAppStore((state) => state.cityStops)
+  const accessibilityFilters = useAppStore((state) => state.accessibilityFilters)
+  const setAccessibilityFilters = useAppStore((state) => state.setAccessibilityFilters)
   const sttEnabled = useAppStore((state) => state.sttEnabled)
   const filteredBuses = useAppStore((state) => state.filteredBuses)
   const [start, setStart] = useState('')
@@ -112,6 +114,43 @@ export const RoutePlanner = () => {
           </button>
         </div>
       </form>
+      <section className="filter-grid">
+        <h3>{t('accessibilityFiltersTitle')}</h3>
+        <div className="filter-options">
+          {[
+            { key: 'wheelchair', label: t('filterWheelchair') },
+            { key: 'ramps', label: t('filterRamps') },
+            { key: 'elevators', label: t('filterElevators') },
+            { key: 'avoidSteep', label: t('filterAvoidSteep') },
+            { key: 'avoidCrowded', label: t('filterAvoidCrowded') },
+          ].map((filter) => (
+            <label key={filter.key} className="pill">
+              <input
+                type="checkbox"
+                checked={accessibilityFilters[filter.key]}
+                onChange={(event) =>
+                  setAccessibilityFilters({ [filter.key]: event.target.checked })
+                }
+              />
+              <span>{filter.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="switch-row compact">
+          <div>
+            <span className="switch-label">{t('calmMode')}</span>
+            <p className="switch-subtext">{t('calmModeHint')}</p>
+          </div>
+          <button
+            type="button"
+            className={`switch ${accessibilityFilters.calmMode ? 'on' : ''}`}
+            onClick={() => setAccessibilityFilters({ calmMode: !accessibilityFilters.calmMode })}
+            aria-pressed={accessibilityFilters.calmMode}
+          >
+            <span className="thumb" />
+          </button>
+        </div>
+      </section>
       <datalist id="bangalore-stops">
         {cityStops.map((stop) => (
           <option key={stop.id} value={stop.name} />

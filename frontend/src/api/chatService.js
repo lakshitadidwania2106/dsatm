@@ -1,11 +1,14 @@
 const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL
 const CHAT_API_KEY = import.meta.env.VITE_CHAT_API_KEY
-const CHAT_PROVIDER = import.meta.env.VITE_CHAT_PROVIDER ?? 'gemini'
+const CHAT_PROVIDER = import.meta.env.VITE_CHAT_PROVIDER ?? 'openai'
 
 const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-1.5-flash-latest'
 const GEMINI_API_KEY =
-  import.meta.env.VITE_GEMINI_API_KEY ?? 'AIzaSyBx8nNJkURMhfDWw9bZfSa2RTE3ZgXf7nU'
+  import.meta.env.VITE_GEMINI_API_KEY ?? 'AIzaSyBbgTmp2yYqRWsV4xWFGH0yY9TvUyStPlE'
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
+const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini'
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
+const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 
 const fallbackResponse = (question) =>
   `I noted your question: "${question}". A live assistant will reply once your chat API key is connected.`
@@ -46,12 +49,54 @@ const sendToGemini = async (messages) => {
   }
 }
 
-export const sendChatPrompt = async (messages) => {
-  if (!CHAT_API_URL && GEMINI_API_KEY) {
-    return sendToGemini(messages)
+const sendToOpenAI = async (messages) => {
+  const response = await fetch(OPENAI_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      messages: messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      temperature: 0.6,
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(error || 'OpenAI replied with an error')
   }
 
+  const payload = await response.json()
+  const content = payload?.choices?.[0]?.message?.content
+  if (content) {
+    return { role: 'assistant', content }
+  }
+
+  return {
+    role: 'assistant',
+    content: fallbackResponse(messages[messages.length - 1]?.content ?? ''),
+  }
+}
+
+export const sendChatPrompt = async (messages) => {
   if (!CHAT_API_URL) {
+    if (CHAT_PROVIDER === 'gemini' && GEMINI_API_KEY) {
+      return sendToGemini(messages)
+    }
+    if (CHAT_PROVIDER === 'openai' && OPENAI_API_KEY) {
+      return sendToOpenAI(messages)
+    }
+    if (OPENAI_API_KEY) {
+      return sendToOpenAI(messages)
+    }
+    if (GEMINI_API_KEY) {
+      return sendToGemini(messages)
+    }
     const lastUser = messages.filter((m) => m.role === 'user').pop()
     return {
       role: 'assistant',

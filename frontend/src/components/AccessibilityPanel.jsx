@@ -29,14 +29,20 @@ export const AccessibilityPanel = () => {
         <h3>{t('accessibilityTitle')}</h3>
       </header>
       <div className="accessibility-controls">
-        <label className="toggle highlight">
-          <input
-            type="checkbox"
-            checked={accessibilityMode}
-            onChange={(event) => setAccessibilityMode(event.target.checked)}
-          />
-          <span>{t('accessibilityMode')}</span>
-        </label>
+        <div className="switch-row">
+          <div>
+            <span className="switch-label">{t('accessibilityMode')}</span>
+            <p className="switch-subtext">{t('speakSelection')}</p>
+          </div>
+          <button
+            type="button"
+            className={`switch ${accessibilityMode ? 'on' : ''}`}
+            onClick={() => setAccessibilityMode(!accessibilityMode)}
+            aria-pressed={accessibilityMode}
+          >
+            <span className="thumb" />
+          </button>
+        </div>
         <label>
           <span>{t('fontSize')}</span>
           <input

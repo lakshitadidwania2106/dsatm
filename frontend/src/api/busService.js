@@ -13,6 +13,10 @@ const fallbackBuses = [
     start: 'Majestic',
     end: 'Electronic City',
     provider: 'Namma Transit',
+    wheelchairAccessible: true,
+    hasRamps: true,
+    elevatorAccess: false,
+    isSteep: false,
   },
   {
     id: 'bus-202',
@@ -25,6 +29,10 @@ const fallbackBuses = [
     start: 'Cubbon Park',
     end: 'BLR Airport',
     provider: 'FlyBus',
+    wheelchairAccessible: true,
+    hasRamps: false,
+    elevatorAccess: true,
+    isSteep: false,
   },
   {
     id: 'bus-303',
@@ -37,6 +45,10 @@ const fallbackBuses = [
     start: 'KR Market',
     end: 'Indiranagar',
     provider: 'City Rapid',
+    wheelchairAccessible: false,
+    hasRamps: true,
+    elevatorAccess: false,
+    isSteep: true,
   },
 ]
 

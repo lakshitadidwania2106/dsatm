@@ -2,6 +2,13 @@ import { create } from 'zustand'
 import { fetchBuses, fetchPopularRoutes } from '../api/busService'
 import { cityStops, routeCatalog } from '../data/cityStops'
 
+const crowdRank = {
+  light: 1,
+  moderate: 2,
+  busy: 3,
+  high: 4,
+}
+
 const defaultRoutes = [
   {
     id: 'rt-01',
@@ -36,6 +43,14 @@ export const useAppStore = create((set, get) => ({
   sttEnabled: true,
   ttsEnabled: true,
   accessibilityMode: false,
+  accessibilityFilters: {
+    wheelchair: false,
+    ramps: false,
+    elevators: false,
+    avoidSteep: false,
+    avoidCrowded: false,
+    calmMode: false,
+  },
   buses: [],
   filteredBuses: [],
   selectedBus: null,
@@ -55,13 +70,26 @@ export const useAppStore = create((set, get) => ({
       sttEnabled: preferences.sttEnabled ?? state.sttEnabled,
       ttsEnabled: preferences.ttsEnabled ?? state.ttsEnabled,
     })),
-  setAccessibilityMode: (enabled) => set({ accessibilityMode: enabled }),
+  setAccessibilityFilters: (patch) =>
+    set((state) => {
+      const next = { ...state.accessibilityFilters, ...patch }
+      setTimeout(() => {
+        get().filterBuses({})
+      }, 0)
+      return { accessibilityFilters: next }
+    }),
+
+  setAccessibilityMode: (enabled) =>
+    set((state) => ({
+      accessibilityMode: enabled,
+      ttsEnabled: enabled ? true : state.ttsEnabled,
+    })),
 
   setSelectedBus: (selectedBus) => set({ selectedBus }),
   setUserLocation: (userLocation) => set({ userLocation }),
 
   filterBuses: ({ start = '', end = '' }) => {
-    const { buses } = get()
+    const { buses, accessibilityFilters } = get()
     if (!start && !end) {
       set({ filteredBuses: buses })
       return
@@ -77,10 +105,27 @@ export const useAppStore = create((set, get) => ({
       const endMatch = normalizedEnd
         ? `${bus.end || ''} ${bus.route || ''}`.toLowerCase().includes(normalizedEnd)
         : true
-      return startMatch && endMatch
+      if (!startMatch || !endMatch) return false
+
+      if (accessibilityFilters.wheelchair && !bus.wheelchairAccessible) return false
+      if (accessibilityFilters.ramps && !bus.hasRamps) return false
+      if (accessibilityFilters.elevators && !bus.elevatorAccess) return false
+      if (accessibilityFilters.avoidSteep && bus.isSteep) return false
+      if (accessibilityFilters.avoidCrowded && crowdRank[(bus.occupancy || 'moderate').toLowerCase()] > 2)
+        return false
+      return true
     })
 
-    set({ filteredBuses: filtered })
+    const results = [...filtered]
+    if (accessibilityFilters.calmMode) {
+      results.sort(
+        (a, b) =>
+          (crowdRank[(a.occupancy || '').toLowerCase()] ?? 5) -
+          (crowdRank[(b.occupancy || '').toLowerCase()] ?? 5),
+      )
+    }
+
+    set({ filteredBuses: results })
   },
 
   planRoute: ({ start, end }) => {
