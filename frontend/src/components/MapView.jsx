@@ -23,7 +23,7 @@ const userMarker = {
   fillOpacity: 0.3,
 }
 
-export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePreview }) => {
+export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePreview, stops }) => {
   const { t } = useI18n()
   const lastUpdated = useAppStore((state) => state.lastUpdated)
 
@@ -78,39 +78,6 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
               />
             </>
           )}
-          {delhiMetroStations.map((station) => {
-            const color = delhiMetroLineColors[station.line] || '#334155'
-            return (
-              <CircleMarker
-                key={station.id}
-                center={[station.latitude, station.longitude]}
-                radius={4}
-                pathOptions={{
-                  color,
-                  fillColor: color,
-                  fillOpacity: 0.9,
-                }}
-              >
-                <Popup>
-                  <strong>{station.name}</strong>
-                  <br />
-                  Line: {station.line}
-                  {station.opened && (
-                    <>
-                      <br />
-                      Opened: {station.opened}
-                    </>
-                  )}
-                  {station.layout && (
-                    <>
-                      <br />
-                      Layout: {station.layout}
-                    </>
-                  )}
-                </Popup>
-              </CircleMarker>
-            )
-          })}
           {buses.map((bus) => (
             <CircleMarker
               key={bus.id}

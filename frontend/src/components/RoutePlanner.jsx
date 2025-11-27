@@ -15,13 +15,16 @@ export const RoutePlanner = () => {
   const filterBuses = useAppStore((state) => state.filterBuses)
   const planRoute = useAppStore((state) => state.planRoute)
   const setSelectedBus = useAppStore((state) => state.setSelectedBus)
-  const cityStops = useAppStore((state) => state.cityStops)
+  const stops = useAppStore((state) => state.stops)
+  const routes = useAppStore((state) => state.routes)
+  const fetchRouteDetails = useAppStore((state) => state.fetchRouteDetails)
   const accessibilityFilters = useAppStore((state) => state.accessibilityFilters)
   const setAccessibilityFilters = useAppStore((state) => state.setAccessibilityFilters)
   const sttEnabled = useAppStore((state) => state.sttEnabled)
   const filteredBuses = useAppStore((state) => state.filteredBuses)
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
+  const [selectedRouteId, setSelectedRouteId] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const { startListening, stopListening, isListening, speechRecognitionSupported } = useSpeech()
 
@@ -33,6 +36,14 @@ export const RoutePlanner = () => {
   const handleRoute = () => {
     planRoute({ start, end })
     filterBuses({ start, end })
+  }
+
+  const handleRouteSelect = (e) => {
+    const routeId = e.target.value
+    setSelectedRouteId(routeId)
+    if (routeId) {
+      fetchRouteDetails(routeId)
+    }
   }
 
   const handleVoice = (field) => {
@@ -61,6 +72,24 @@ export const RoutePlanner = () => {
         </div>
         <span className="meta">{filteredBuses.length}</span>
       </header>
+
+      <div className="input-field" style={{ marginBottom: '1rem' }}>
+        <span>Select Route to View</span>
+        <div className="input-control">
+          <input
+            list="routes-list"
+            placeholder="Search Route (e.g. KIA-14)"
+            value={selectedRouteId}
+            onChange={handleRouteSelect}
+          />
+          <datalist id="routes-list">
+            {routes.map(route => (
+              <option key={route.id} value={route.id} />
+            ))}
+          </datalist>
+        </div>
+      </div>
+
       <form className="planner-form" onSubmit={handleSubmit}>
         <label className="input-field">
           <span>{t('startPlaceholder')}</span>
@@ -168,7 +197,7 @@ export const RoutePlanner = () => {
         )}
       </section>
       <datalist id="bangalore-stops">
-        {cityStops.map((stop) => (
+        {stops.map((stop) => (
           <option key={stop.id} value={stop.name} />
         ))}
       </datalist>

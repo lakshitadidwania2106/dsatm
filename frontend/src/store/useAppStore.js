@@ -195,5 +195,58 @@ export const useAppStore = create((set, get) => ({
       console.warn('Using fallback popular routes', error)
     }
   },
+
+  stops: [],
+  routes: [],
+  isLoadingStops: false,
+  isLoadingRoutes: false,
+
+  fetchStops: async () => {
+    set({ isLoadingStops: true })
+    try {
+      console.log('Fetching stops...')
+      const { fetchStops } = await import('../api/busService')
+      const stops = await fetchStops()
+      console.log('Stops fetched:', stops?.length)
+      set({ stops })
+    } catch (error) {
+      console.error('Failed to fetch stops', error)
+    } finally {
+      set({ isLoadingStops: false })
+    }
+  },
+
+  fetchRoutes: async () => {
+    set({ isLoadingRoutes: true })
+    try {
+      const { fetchRoutes } = await import('../api/busService')
+      const routes = await fetchRoutes()
+      set({ routes })
+    } catch (error) {
+      console.error('Failed to fetch routes', error)
+    } finally {
+      set({ isLoadingRoutes: false })
+    }
+  },
+  fetchRouteDetails: async (routeId) => {
+    try {
+      const { fetchRouteDetails, decodePolyline } = await import('../api/busService')
+      const route = await fetchRouteDetails(routeId)
+
+      if (route && route['0']) {
+        // Use direction '0' for now
+        const coordinates = decodePolyline(route['0'])
+        set({
+          routePreview: {
+            id: routeId,
+            coordinates,
+            color: route.color
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch route details', error)
+    }
+  },
 }))
 
