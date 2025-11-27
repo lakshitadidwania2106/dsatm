@@ -3,7 +3,7 @@ import { Mic, Navigation, Clock, DollarSign, RefreshCw, Route as RouteIcon, Chev
 import { useI18n } from '../hooks/useI18n'
 import { useSpeech } from '../hooks/useSpeech'
 import { planTrip } from '../services/tripPlannerService'
-import { cityStops } from '../data/cityStops'
+import { delhiStops } from '../data/delhiStops'
 import { metroStations } from '../data/metroStations'
 import { useAppStore } from '../store/useAppStore'
 
@@ -33,14 +33,14 @@ export const FieldTripPlanner = () => {
 
   // Geocode location (simplified - in production, use a real geocoding service)
   const geocodeLocation = (locationName) => {
-    // Try to find in city stops
-    const cityStop = cityStops.find(
+    // Try to find in Delhi stops
+    const delhiStop = delhiStops.find(
       (stop) =>
         stop.name.toLowerCase().includes(locationName.toLowerCase()) ||
         stop.shortLabel.toLowerCase().includes(locationName.toLowerCase()),
     )
-    if (cityStop) {
-      return { lat: cityStop.lat, lng: cityStop.lng, name: cityStop.name }
+    if (delhiStop) {
+      return { lat: delhiStop.lat, lng: delhiStop.lng, name: delhiStop.name }
     }
 
     // Try to find in metro stations
@@ -58,8 +58,8 @@ export const FieldTripPlanner = () => {
       return { ...userLocation, name: locationName }
     }
 
-    // Default to a central location (Bangalore)
-    return { lat: 12.9716, lng: 77.5946, name: locationName }
+    // Default to a central location (Delhi)
+    return { lat: 28.6139, lng: 77.2090, name: locationName }
   }
 
   const handlePlanTrip = async () => {
@@ -80,6 +80,22 @@ export const FieldTripPlanner = () => {
       const plannedRoutes = await planTrip(start, end, preference)
       setRoutes(plannedRoutes)
       setShowResults(true)
+      
+      // Store routes in global store for FeasibleRoutes component
+      useAppStore.getState().setPlannedRoutes(plannedRoutes)
+      
+      // Update route preview in store for map display (show first route by default)
+      if (plannedRoutes.length > 0) {
+        const selectedRoute = plannedRoutes[0]
+        const setRoutePreview = useAppStore.getState().setRoutePreview
+        setRoutePreview({
+          coordinates: selectedRoute.coordinates || [
+            [start.lat, start.lng],
+            [end.lat, end.lng]
+          ],
+          route: selectedRoute
+        })
+      }
     } catch (error) {
       console.error('Error planning trip:', error)
     } finally {
@@ -329,68 +345,17 @@ export const FieldTripPlanner = () => {
 
       {/* Autocomplete datalists */}
       <datalist id="location-autocomplete-start">
-        {[...cityStops, ...metroStations].map((location) => (
+        {[...delhiStops, ...metroStations].map((location) => (
           <option key={`start-${location.id || location.code}`} value={location.name} />
         ))}
       </datalist>
       <datalist id="location-autocomplete-end">
-        {[...cityStops, ...metroStations].map((location) => (
+        {[...delhiStops, ...metroStations].map((location) => (
           <option key={`end-${location.id || location.code}`} value={location.name} />
         ))}
       </datalist>
 
-      {/* Results Display */}
-      {showResults && routes.length > 0 && (
-        <div className="trip-results">
-          <h3 className="results-title">{t('feasibleRoutes') || 'Feasible Routes'}</h3>
-          <div className="routes-list">
-            {routes.map((route) => (
-              <div key={route.id} className="route-card">
-                <div className="route-header">
-                  <h4>{route.name}</h4>
-                  <div className="route-metrics">
-                    <span className="metric">
-                      <Clock size={14} />
-                      {formatTime(route.totalTravelTime)}
-                    </span>
-                    <span className="metric">
-                      <DollarSign size={14} />
-                      ₹{route.estimatedCost}
-                    </span>
-                    <span className="metric">
-                      <RouteIcon size={14} />
-                      {route.transfers} {t('transfers') || 'transfers'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="route-steps">
-                  <p className="steps-label">{t('detailedItinerary') || 'Detailed Step-by-Step Itinerary'}</p>
-                  <ol className="steps-list">
-                    {route.steps.map((step, index) => (
-                      <li key={index} className={`step-item step-${step.type}`}>
-                        <span className="step-number">{step.step}</span>
-                        <span className="step-content">{step.description}</span>
-                        {step.waitTime && (
-                          <span className="step-wait-time">
-                            {t('realTimeWait') || 'Real-Time Wait'}: {step.waitTime} min
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showResults && routes.length === 0 && (
-        <div className="empty-results">
-          <p>{t('noRoutesFound') || 'No routes found for this journey. Please try different locations.'}</p>
-        </div>
-      )}
+      {/* Routes are now displayed in FeasibleRoutes component under the map */}
     </div>
   )
 }

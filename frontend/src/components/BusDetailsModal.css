@@ -1,0 +1,269 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.bus-details-modal {
+  background: #fff;
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #e2e8f0;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-right: 2.5rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #0f172a;
+}
+
+.favorite-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #64748b;
+}
+
+.favorite-btn:hover {
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+.favorite-btn.active {
+  border-color: #fbbf24;
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.modal-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.notification-section {
+  margin-top: 1.5rem;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.notification-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.notification-desc {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.add-stop-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.add-stop-btn:hover {
+  border-color: #0f172a;
+  background: #f1f5f9;
+}
+
+.stop-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stop-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #fff;
+}
+
+.stop-selector-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.save-stop-btn,
+.cancel-stop-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-stop-btn {
+  background: #0f172a;
+  color: #fff;
+  border: none;
+}
+
+.save-stop-btn:hover:not(:disabled) {
+  background: #1e293b;
+}
+
+.save-stop-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-stop-btn {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.cancel-stop-btn:hover {
+  background: #e2e8f0;
+}
+
+.favorite-stops-list {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.stops-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.favorite-stop-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.favorite-stop-item span {
+  flex: 1;
+  color: #0f172a;
+}
+
+.remove-stop-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-stop-btn:hover {
+  background: #fecaca;
+}
+
+@media (max-width: 640px) {
+  .bus-details-modal {
+    padding: 1.5rem;
+    max-height: 95vh;
+  }
+
+  .modal-header h2 {
+    font-size: 1.5rem;
+  }
+}
+

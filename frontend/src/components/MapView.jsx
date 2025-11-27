@@ -83,17 +83,29 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
           )}
           {routePreview?.coordinates && (
             <>
-              <Polyline positions={routePreview.coordinates} pathOptions={{ color: '#2563eb', weight: 6 }} />
+              <Polyline 
+                positions={routePreview.coordinates} 
+                pathOptions={{ 
+                  color: '#2563eb', 
+                  weight: 6,
+                  opacity: 0.8,
+                  dashArray: '10, 5'
+                }} 
+              />
               <CircleMarker
                 center={routePreview.coordinates[0]}
-                radius={9}
-                pathOptions={{ color: '#2563eb', fillColor: '#fff', fillOpacity: 1 }}
-              />
+                radius={10}
+                pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 1 }}
+              >
+                <Popup>Start: {routePreview.route?.boarding || 'Start'}</Popup>
+              </CircleMarker>
               <CircleMarker
                 center={routePreview.coordinates[routePreview.coordinates.length - 1]}
-                radius={9}
-                pathOptions={{ color: '#16a34a', fillColor: '#fff', fillOpacity: 1 }}
-              />
+                radius={10}
+                pathOptions={{ color: '#16a34a', fillColor: '#16a34a', fillOpacity: 1 }}
+              >
+                <Popup>End: {routePreview.route?.alighting || 'End'}</Popup>
+              </CircleMarker>
             </>
           )}
           {delhiMetroStations.map((station) => {

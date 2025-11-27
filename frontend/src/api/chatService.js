@@ -4,7 +4,7 @@ const CHAT_PROVIDER = import.meta.env.VITE_CHAT_PROVIDER ?? 'openai'
 
 const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-2.0-flash'
 const GEMINI_API_KEY =
-  import.meta.env.VITE_GEMINI_API_KEY ?? 'AIzaSyBbgTmp2yYqRWsV4xWFGH0yY9TvUyStPlE'
+  import.meta.env.VITE_GEMINI_API_KEY ?? 'AIzaSyAZsZOq6Y-hdQ85YjKIOzZVTJSdsIwoBSw'
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini'
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY

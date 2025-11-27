@@ -2,7 +2,9 @@ import { useEffect } from 'react'
 import { MapView } from '../components/MapView'
 import { RouteOverview } from '../components/RouteOverview'
 import { BusInfoCard } from '../components/BusInfoCard'
+import { BusDetailsModal } from '../components/BusDetailsModal'
 import { FieldTripPlanner } from '../components/FieldTripPlanner'
+import { FeasibleRoutes } from '../components/FeasibleRoutes'
 import { useAppStore } from '../store/useAppStore'
 
 export const DashboardPage = () => {
@@ -13,6 +15,9 @@ export const DashboardPage = () => {
   const selectedBus = useAppStore((state) => state.selectedBus)
   const setSelectedBus = useAppStore((state) => state.setSelectedBus)
   const routePreview = useAppStore((state) => state.routePreview)
+  const showBusModal = useAppStore((state) => state.showBusModal)
+  const setShowBusModal = useAppStore((state) => state.setShowBusModal)
+  const checkBusNotifications = useAppStore((state) => state.checkBusNotifications)
 
   useEffect(() => {
     refreshBuses();
@@ -35,23 +40,59 @@ export const DashboardPage = () => {
     )
   }, [setUserLocation])
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
+  // Check for bus notifications periodically
+  useEffect(() => {
+    const notificationInterval = setInterval(() => {
+      if (buses.length > 0) {
+        checkBusNotifications()
+      }
+    }, 30000) // Check every 30 seconds
+
+    return () => clearInterval(notificationInterval)
+  }, [buses, checkBusNotifications])
+
+  // Show modal when bus is selected
+  useEffect(() => {
+    if (selectedBus) {
+      setShowBusModal(true)
+    }
+  }, [selectedBus, setShowBusModal])
+
+  const handleCloseModal = () => {
+    setShowBusModal(false)
+    setSelectedBus(null)
+  }
+
   return (
-    <div className="dashboard-grid">
-      <div className="map-stack">
-        <MapView
-          buses={buses}
-          userLocation={userLocation}
-          selectedBus={selectedBus}
-          routePreview={routePreview}
-          onSelectBus={setSelectedBus}
-        />
-        <BusInfoCard />
+    <>
+      <div className="dashboard-grid">
+        <div className="map-stack">
+          <MapView
+            buses={buses}
+            userLocation={userLocation}
+            selectedBus={selectedBus}
+            routePreview={routePreview}
+            onSelectBus={setSelectedBus}
+          />
+          <FeasibleRoutes />
+          <BusInfoCard />
+        </div>
+        <div className="stacked-panels">
+          <FieldTripPlanner />
+          <RouteOverview />
+        </div>
       </div>
-      <div className="stacked-panels">
-        <FieldTripPlanner />
-        <RouteOverview />
-      </div>
-    </div>
+      {showBusModal && selectedBus && (
+        <BusDetailsModal bus={selectedBus} onClose={handleCloseModal} />
+      )}
+    </>
   )
 }
 

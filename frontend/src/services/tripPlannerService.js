@@ -1,6 +1,9 @@
 import { fetchBuses } from '../api/busService'
-import { cityStops } from '../data/cityStops'
+import { delhiStops } from '../data/delhiStops'
 import { metroStations } from '../data/metroStations'
+
+const GEMINI_API_KEY = 'AIzaSyAZsZOq6Y-hdQ85YjKIOzZVTJSdsIwoBSw'
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
 // Helper: Calculate distance between two coordinates (Haversine formula)
 const calculateDistance = (lat1, lng1, lat2, lng2) => {
@@ -31,6 +34,57 @@ const findNearestStop = (lat, lng, stops) => {
     }
   }
   return { ...nearest, walkDistance: minDistance }
+}
+
+// Helper: Call Gemini API for route planning
+const callGeminiForRoute = async (startLocation, endLocation, preference) => {
+  try {
+    const prompt = `Plan a public transport route in Delhi, India from "${startLocation.name}" (${startLocation.lat}, ${startLocation.lng}) to "${endLocation.name}" (${endLocation.lat}, ${endLocation.lng}).
+
+Preference: ${preference === 'time' ? 'Fastest route' : preference === 'cost' ? 'Cheapest route' : 'Minimum transfers'}
+
+Available stops: ${delhiStops.slice(0, 50).map(s => s.name).join(', ')}
+
+Return a JSON array with 3 route options. Each route should have:
+- name: Route name (e.g., "City Center ⇌ Tech Park")
+- totalTravelTime: Total time in minutes
+- estimatedCost: Cost in rupees
+- transfers: Number of transfers
+- boarding: Starting stop name
+- alighting: Ending stop name
+- eta: Estimated time of arrival in format "X mins"
+- steps: Array of step objects with {step: number, type: "bus"|"metro"|"walk", description: string, duration: minutes}
+
+Return only valid JSON, no markdown.`
+
+    const response = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Gemini API error')
+    }
+
+    const data = await response.json()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    
+    // Extract JSON from response
+    const jsonMatch = text.match(/\[[\s\S]*\]/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Gemini API error:', error)
+    return null
+  }
 }
 
 // Helper: Parse ETA string to minutes
@@ -144,14 +198,41 @@ const generateRoute = async (
   preference,
   buses,
   routeId,
+  geminiRoute = null,
 ) => {
   // Find nearest stops
-  const allStops = [...cityStops, ...metroStations]
+  const allStops = [...delhiStops, ...metroStations]
   const startStop = findNearestStop(startLocation.lat, startLocation.lng, allStops)
   const endStop = findNearestStop(endLocation.lat, endLocation.lng, allStops)
 
   if (!startStop || !endStop) {
     return null
+  }
+
+  // If Gemini provided a route, use it
+  if (geminiRoute) {
+    const coordinates = [
+      [startLocation.lat, startLocation.lng],
+      [(startLocation.lat + endLocation.lat) / 2 + 0.01, (startLocation.lng + endLocation.lng) / 2 + 0.01],
+      [endLocation.lat, endLocation.lng]
+    ]
+    
+    return {
+      id: `route-${routeId}`,
+      name: geminiRoute.name || `Route ${routeId}`,
+      totalTravelTime: geminiRoute.totalTravelTime || 45,
+      estimatedCost: geminiRoute.estimatedCost || 30,
+      transfers: geminiRoute.transfers || 0,
+      steps: geminiRoute.steps || [],
+      boarding: geminiRoute.boarding || startStop.name,
+      alighting: geminiRoute.alighting || endStop.name,
+      eta: geminiRoute.eta || '45 mins',
+      coordinates,
+      segments: [],
+      initialWalk: 0,
+      finalWalk: 0,
+      preference,
+    }
   }
 
   // Calculate initial and final walk times
@@ -290,15 +371,35 @@ const generateRoute = async (
 // Main trip planning function
 export const planTrip = async (startLocation, endLocation, preference = 'time') => {
   try {
-    // Fetch real-time bus data
+    // Use GTFS + OSM routing for actual road-following routes
+    const { planGTFSRoute } = await import('./gtfsRoutingService')
+    const gtfsRoutes = await planGTFSRoute(startLocation, endLocation, preference)
+    
+    if (gtfsRoutes && gtfsRoutes.length > 0) {
+      // Use GTFS routes (they follow actual roads via OSRM)
+      return gtfsRoutes.slice(0, 3)
+    }
+    
+    // Fallback: Fetch real-time bus data and use Gemini
     const buses = await fetchBuses()
-
-    // Generate multiple route options
-    const routePromises = [1, 2, 3].map((routeId) =>
-      generateRoute(startLocation, endLocation, preference, buses, routeId),
-    )
-
-    let routes = await Promise.all(routePromises)
+    const geminiRoutes = await callGeminiForRoute(startLocation, endLocation, preference)
+    
+    let routes = []
+    
+    if (geminiRoutes && geminiRoutes.length > 0) {
+      // Use Gemini routes
+      const routePromises = geminiRoutes.slice(0, 3).map((geminiRoute, index) =>
+        generateRoute(startLocation, endLocation, preference, buses, index + 1, geminiRoute),
+      )
+      routes = await Promise.all(routePromises)
+    } else {
+      // Fallback to default route generation
+      const routePromises = [1, 2, 3].map((routeId) =>
+        generateRoute(startLocation, endLocation, preference, buses, routeId),
+      )
+      routes = await Promise.all(routePromises)
+    }
+    
     routes = routes.filter((route) => route !== null)
 
     // Sort routes based on preference

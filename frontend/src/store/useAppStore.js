@@ -63,6 +63,9 @@ export const useAppStore = create((set, get) => ({
   error: null,
   cityStops,
   routePreview: null,
+  plannedRoutes: [],
+  setRoutePreview: (preview) => set({ routePreview: preview }),
+  setPlannedRoutes: (routes) => set({ plannedRoutes: routes }),
   driverProfile: {
     name: 'Rajesh Kumar',
     busNumber: 'DL-01-AB-1234',
@@ -72,6 +75,9 @@ export const useAppStore = create((set, get) => ({
     phone: '+91 98765 43210',
   },
   isSharingLocation: false,
+  favorites: [],
+  favoriteStops: [],
+  showBusModal: false,
 
   setUserRole: (role) => set({ userRole: role, isLoggedIn: true }),
   logout: () => set({ userRole: null, isLoggedIn: false }),
@@ -209,6 +215,68 @@ export const useAppStore = create((set, get) => ({
     } catch (error) {
       console.warn('Using fallback popular routes', error)
     }
+  },
+  addFavorite: (bus) => {
+    const { favorites } = get()
+    if (!favorites.some((fav) => fav.id === bus.id)) {
+      set({ favorites: [...favorites, bus] })
+    }
+  },
+  removeFavorite: (busId) => {
+    const { favorites } = get()
+    set({ favorites: favorites.filter((fav) => fav.id !== busId) })
+  },
+  addFavoriteStop: (stopData) => {
+    const { favoriteStops } = get()
+    const newStop = {
+      id: `${stopData.busId}-${stopData.stopName}-${Date.now()}`,
+      ...stopData,
+    }
+    set({ favoriteStops: [...favoriteStops, newStop] })
+  },
+  removeFavoriteStop: (stopId) => {
+    const { favoriteStops } = get()
+    set({ favoriteStops: favoriteStops.filter((fs) => fs.id !== stopId) })
+  },
+  setShowBusModal: (show) => set({ showBusModal: show }),
+  checkBusNotifications: () => {
+    const { favoriteStops, buses } = get()
+    const userLocation = get().userLocation
+    
+    if (!userLocation || favoriteStops.length === 0) return
+
+    favoriteStops.forEach((fs) => {
+      const bus = buses.find((b) => b.id === fs.busId)
+      if (!bus) return
+
+      // Find the stop in cityStops
+      const stop = cityStops.find((s) => s.name === fs.stopName)
+      if (!stop) return
+
+      // Calculate distance between bus and stop (simple distance check)
+      const distance = Math.sqrt(
+        Math.pow(bus.lat - stop.lat, 2) + Math.pow(bus.lng - stop.lng, 2)
+      )
+
+      // If bus is within ~500m of the stop (approximately 0.0045 degrees)
+      if (distance < 0.0045 && 'Notification' in window && Notification.permission === 'granted') {
+        // Check if we've already notified for this bus-stop combination recently
+        const notificationKey = `notified-${fs.busId}-${fs.stopName}`
+        const lastNotified = localStorage.getItem(notificationKey)
+        const now = Date.now()
+
+        if (!lastNotified || now - parseInt(lastNotified) > 60000) {
+          // Show notification
+          new Notification(`Bus ${fs.busRoute} is arriving!`, {
+            body: `Your favorite bus is near ${fs.stopName}`,
+            icon: '/vite.svg',
+            tag: notificationKey,
+          })
+
+          localStorage.setItem(notificationKey, now.toString())
+        }
+      }
+    })
   },
 }))
 
