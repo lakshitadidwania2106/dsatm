@@ -62,12 +62,6 @@ export const AccessibilityReports = () => {
           </article>
         ))}
       </div>
-      <section className="report-steps">
-        <h3>{t('reportSetupTitle')}</h3>
-        <p>{t('reportSetupStep1')}</p>
-        <p>{t('reportSetupStep2')}</p>
-        <p>{t('reportSetupStep3')}</p>
-      </section>
     </section>
   )
 }

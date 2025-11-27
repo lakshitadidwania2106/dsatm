@@ -7,6 +7,7 @@ import { DriverPage } from './pages/DriverPage'
 import { AccessibilityPage } from './pages/AccessibilityPage'
 import { AppShell } from './layout/AppShell'
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer'
+import { VoiceCommandHandler } from './components/VoiceCommandHandler'
 import { useAppStore } from './store/useAppStore'
 import './App.css'
 
@@ -36,6 +37,7 @@ function App() {
   return (
     <BrowserRouter>
       <AccessibilityAnnouncer />
+      <VoiceCommandHandler />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route

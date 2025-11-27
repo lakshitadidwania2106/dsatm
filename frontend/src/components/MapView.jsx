@@ -7,14 +7,23 @@ import { useAppStore } from '../store/useAppStore'
 import { SmoothBusMarker } from './SmoothBusMarker'
 import { delhiMetroStations, delhiMetroLineColors } from '../data/delhiMetro'
 
-const MapController = ({ center, selectedBus }) => {
+const MapController = ({ center, selectedBus, userLocation }) => {
   const map = useMap()
   const isFirstLoad = useRef(true)
+  const hasCenteredOnUser = useRef(false)
 
   useEffect(() => {
-    // Scenario A: First load - Center the map
+    // Priority 1: Center on user location when it becomes available (first time only)
+    if (userLocation && !hasCenteredOnUser.current) {
+      map.setView([userLocation.lat, userLocation.lng], 14, { animate: true })
+      hasCenteredOnUser.current = true
+      isFirstLoad.current = false
+      return
+    }
+
+    // Scenario A: First load - Center the map on default location
     if (isFirstLoad.current && center) {
-      map.setView(center, 14)
+      map.setView(center, 13)
       isFirstLoad.current = false
       return
     }
@@ -26,7 +35,7 @@ const MapController = ({ center, selectedBus }) => {
 
     // We REMOVED the logic that blindly calls setView on every update.
     // The map will now stay where the user dragged it, even if data updates.
-  }, [center, map, selectedBus])
+  }, [center, map, selectedBus, userLocation])
 
   return null
 }
@@ -51,12 +60,12 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
     })
   }, [])
 
-  // Default center
-  const defaultCenter = [12.9716, 77.5946]
-  const mapCenter = userLocation ? [userLocation.lat, userLocation.lng] : defaultCenter
+  // Default center - Delhi (since we're using Delhi data)
+  const defaultDelhiCenter = [28.6139, 77.2090] // Connaught Place, Delhi
+  const mapCenter = userLocation ? [userLocation.lat, userLocation.lng] : defaultDelhiCenter
   const defaultMetroCenter = delhiMetroStations.length
     ? [delhiMetroStations[0].latitude, delhiMetroStations[0].longitude]
-    : [12.9716, 77.5946]
+    : defaultDelhiCenter
   const center = userLocation ? [userLocation.lat, userLocation.lng] : defaultMetroCenter
 
   const lineLegend = Object.entries(delhiMetroLineColors).sort((a, b) => a[0].localeCompare(b[0]))
@@ -75,7 +84,7 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
       <div className="map-container">
         <MapContainer center={mapCenter} zoom={13} scrollWheelZoom className="leaflet-root">
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <MapController center={mapCenter} selectedBus={selectedBus} />
+          <MapController center={mapCenter} selectedBus={selectedBus} userLocation={userLocation} />
           {userLocation && (
             <CircleMarker center={[userLocation.lat, userLocation.lng]} pathOptions={userMarker}>
               <Popup>{t('locating')}</Popup>
