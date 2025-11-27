@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -6,6 +6,7 @@ import { useI18n } from '../hooks/useI18n'
 import { useAppStore } from '../store/useAppStore'
 import { SmoothBusMarker } from './SmoothBusMarker'
 import { delhiMetroStations, delhiMetroLineColors } from '../data/delhiMetro'
+import { fetchVirtualBuses, fetchShapes } from '../api/busService'
 
 const MapController = ({ center, selectedBus, userLocation }) => {
   const map = useMap()
@@ -50,6 +51,8 @@ const userMarker = {
 export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePreview }) => {
   const { t } = useI18n()
   const lastUpdated = useAppStore((state) => state.lastUpdated)
+  const [virtualBuses, setVirtualBuses] = useState([])
+  const [shapes, setShapes] = useState({})
 
   useEffect(() => {
     delete L.Icon.Default.prototype._getIconUrl
@@ -60,15 +63,38 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
     })
   }, [])
 
+
   // Default center - Delhi (since we're using Delhi data)
   const defaultDelhiCenter = [28.6139, 77.2090] // Connaught Place, Delhi
   const mapCenter = userLocation ? [userLocation.lat, userLocation.lng] : defaultDelhiCenter
+
+  // Fetch Virtual Buses and Shapes
+  useEffect(() => {
+    const fetchVirtual = async () => {
+      const vBuses = await fetchVirtualBuses();
+      setVirtualBuses(vBuses);
+    };
+
+    const loadShapes = async () => {
+      const data = await fetchShapes();
+      setShapes(data);
+    };
+
+    fetchVirtual();
+    loadShapes();
+
+    const interval = setInterval(fetchVirtual, 5000);
+    return () => clearInterval(interval);
+  }, []);
   const defaultMetroCenter = delhiMetroStations.length
     ? [delhiMetroStations[0].latitude, delhiMetroStations[0].longitude]
     : defaultDelhiCenter
   const center = userLocation ? [userLocation.lat, userLocation.lng] : defaultMetroCenter
 
   const lineLegend = Object.entries(delhiMetroLineColors).sort((a, b) => a[0].localeCompare(b[0]))
+
+  // Merge real and virtual buses for display
+  const allBuses = [...buses, ...virtualBuses];
 
   return (
     <div className="map-card">
@@ -92,14 +118,14 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
           )}
           {routePreview?.coordinates && (
             <>
-              <Polyline 
-                positions={routePreview.coordinates} 
-                pathOptions={{ 
-                  color: '#2563eb', 
+              <Polyline
+                positions={routePreview.coordinates}
+                pathOptions={{
+                  color: '#2563eb',
                   weight: 6,
                   opacity: 0.8,
                   dashArray: '10, 5'
-                }} 
+                }}
               />
               <CircleMarker
                 center={routePreview.coordinates[0]}
@@ -150,7 +176,16 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
               </CircleMarker>
             )
           })}
-          {buses.map((bus) => (
+
+          {/* OSRM Route Shape for Selected Bus */}
+          {selectedBus && shapes[selectedBus.route] && (
+            <Polyline
+              positions={shapes[selectedBus.route]}
+              pathOptions={{ color: '#ef4444', weight: 5, opacity: 0.8, dashArray: '10, 10' }}
+            />
+          )}
+
+          {allBuses.map((bus) => (
             <SmoothBusMarker
               key={bus.id}
               bus={bus}

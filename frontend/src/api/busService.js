@@ -87,7 +87,7 @@ export const fetchBuses = async (bounds) => {
         id: bus.id,
         lat: bus.lat,
         lng: bus.lng,
-        route: `Trip: ${bus.trip_id}`, // Placeholder until static data integration
+        route: bus.route,
         cost: '₹20', // Placeholder
         eta: 'Unknown', // Placeholder
         occupancy: 'Moderate', // Placeholder
@@ -120,4 +120,62 @@ export const fetchPopularRoutes = async () => {
 
   return fallbackRoutes
 }
+
+// --- Virtual Bus APIs ---
+
+const API_BASE_URL = 'http://localhost:8000/api';
+
+export const fetchRoutes = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/routes`);
+    if (!response.ok) throw new Error('Failed to fetch routes');
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching routes:", error);
+    return [];
+  }
+};
+
+export const broadcastLocation = async (report) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/broadcast-location`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(report),
+    });
+    if (!response.ok) throw new Error('Failed to broadcast location');
+    return await response.json();
+  } catch (error) {
+    console.error("Error broadcasting location:", error);
+    return null;
+  }
+};
+
+export const fetchVirtualBuses = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/virtual-buses`);
+    if (!response.ok) throw new Error('Failed to fetch virtual buses');
+    const data = await response.json();
+    return data.map(bus => ({
+      ...bus,
+      type: 'virtual', // Mark as virtual for UI distinction
+    }));
+  } catch (error) {
+    console.error("Error fetching virtual buses:", error);
+    return [];
+  }
+};
+
+export const fetchShapes = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/shapes`);
+    if (!response.ok) throw new Error('Failed to fetch shapes');
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching shapes:", error);
+    return {};
+  }
+};
 
