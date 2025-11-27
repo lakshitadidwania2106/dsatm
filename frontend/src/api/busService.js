@@ -72,31 +72,40 @@ const parseResponse = async (res) => {
 }
 
 export const fetchBuses = async (bounds) => {
-  if (!BUS_API_URL) {
+  const apiUrl = BUS_API_URL || 'http://localhost:8000/api/live-buses'
+
+  try {
+    const response = await fetch(apiUrl)
+    if (!response.ok) {
+      console.warn('Backend not reachable, using fallback data')
+      return fallbackBuses
+    }
+    const payload = await response.json()
+
+    if (Array.isArray(payload)) {
+      return payload.map(bus => ({
+        id: bus.id,
+        lat: bus.lat,
+        lng: bus.lng,
+        route: `Trip: ${bus.trip_id}`, // Placeholder until static data integration
+        cost: '₹20', // Placeholder
+        eta: 'Unknown', // Placeholder
+        occupancy: 'Moderate', // Placeholder
+        start: 'Unknown', // Placeholder
+        end: 'Unknown', // Placeholder
+        provider: 'Delhi Transit',
+        wheelchairAccessible: true, // Placeholder
+        hasRamps: true, // Placeholder
+        elevatorAccess: false, // Placeholder
+        isSteep: false, // Placeholder
+        speed: bus.speed
+      }))
+    }
+    return fallbackBuses
+  } catch (error) {
+    console.warn('Error fetching buses:', error)
     return fallbackBuses
   }
-
-  const params = new URLSearchParams()
-  if (bounds) {
-    Object.entries(bounds).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, value)
-      }
-    })
-  }
-
-  const url = params.size ? `${BUS_API_URL}?${params}` : BUS_API_URL
-  const payload = await parseResponse(await fetch(url))
-
-  if (Array.isArray(payload)) {
-    return payload
-  }
-
-  if (Array.isArray(payload?.buses)) {
-    return payload.buses
-  }
-
-  return fallbackBuses
 }
 
 export const fetchPopularRoutes = async () => {
