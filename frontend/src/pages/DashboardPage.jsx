@@ -4,6 +4,7 @@ import { RoutePlanner } from '../components/RoutePlanner'
 import { RouteOverview } from '../components/RouteOverview'
 import { BusInfoCard } from '../components/BusInfoCard'
 import { PopularRoutes } from '../components/PopularRoutes'
+import { AccessibilityReports } from '../components/AccessibilityReports'
 import { ChatAssistant } from '../components/ChatAssistant'
 import { useAppStore } from '../store/useAppStore'
 
@@ -39,19 +40,22 @@ export const DashboardPage = () => {
 
   return (
     <div className="dashboard-grid">
-      <MapView
-        buses={buses}
-        userLocation={userLocation}
-        selectedBus={selectedBus}
-        routePreview={routePreview}
-        onSelectBus={setSelectedBus}
-      />
+      <div className="map-stack">
+        <MapView
+          buses={buses}
+          userLocation={userLocation}
+          selectedBus={selectedBus}
+          routePreview={routePreview}
+          onSelectBus={setSelectedBus}
+        />
+        <ChatAssistant />
+      </div>
       <div className="stacked-panels">
         <RoutePlanner />
         <RouteOverview />
         <BusInfoCard />
         <PopularRoutes />
-        <ChatAssistant />
+        <AccessibilityReports />
       </div>
     </div>
   )
