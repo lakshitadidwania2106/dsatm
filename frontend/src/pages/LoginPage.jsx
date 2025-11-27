@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Bus, Train, User, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store/useAppStore'
+import { useI18n } from '../hooks/useI18n'
 import './LoginPage.css'
 
 export const LoginPage = () => {
+  const { t } = useI18n()
   const [selectedRole, setSelectedRole] = useState(null)
   const navigate = useNavigate()
   const setUserRole = useAppStore((state) => state.setUserRole)
@@ -37,8 +39,8 @@ export const LoginPage = () => {
       
       <div className="login-content">
         <div className="login-header">
-          <h1>City Transit Live</h1>
-          <p>Choose your role to continue</p>
+          <h1>BusBuddy</h1>
+          <p>{t('chooseRole')}</p>
         </div>
 
         <div className="role-selection">
@@ -49,8 +51,8 @@ export const LoginPage = () => {
             <div className="role-icon">
               <User size={32} />
             </div>
-            <h2>User</h2>
-            <p>Find buses, plan routes, and track your journey</p>
+            <h2>{t('userRole')}</h2>
+            <p>{t('userRoleDesc')}</p>
           </button>
 
           <button
@@ -60,8 +62,8 @@ export const LoginPage = () => {
             <div className="role-icon">
               <Shield size={32} />
             </div>
-            <h2>Driver</h2>
-            <p>Manage your route and share live location</p>
+            <h2>{t('driverRole')}</h2>
+            <p>{t('driverRoleDesc')}</p>
           </button>
         </div>
       </div>

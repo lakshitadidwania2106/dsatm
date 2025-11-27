@@ -192,10 +192,18 @@ export const useAppStore = create((set, get) => ({
   refreshBuses: async (bounds) => {
     set({ isLoadingBuses: true, error: null })
     try {
-      const buses = await fetchBuses(bounds)
+      const fetchedBuses = await fetchBuses(bounds)
+      const currentBuses = get().buses
+      
+      // Preserve driver buses (buses that start with "driver-")
+      const driverBuses = currentBuses.filter(bus => bus.id && bus.id.startsWith('driver-'))
+      
+      // Combine fetched buses with driver buses
+      const allBuses = [...fetchedBuses, ...driverBuses]
+      
       set({
-        buses,
-        filteredBuses: buses,
+        buses: allBuses,
+        filteredBuses: allBuses,
         lastUpdated: new Date().toISOString(),
       })
     } catch (error) {
