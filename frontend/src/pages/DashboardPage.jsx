@@ -15,14 +15,12 @@ export const DashboardPage = () => {
   const routePreview = useAppStore((state) => state.routePreview)
 
   useEffect(() => {
-    refreshBuses()
-<<<<<<< HEAD
-    const interval = setInterval(refreshBuses, 30000)
-=======
-    const interval = setInterval(refreshBuses, 10000)
->>>>>>> a1bec14928c70aacff08ab78572e12f730c5c734
-    return () => clearInterval(interval)
-  }, [refreshBuses])
+    refreshBuses();
+    const interval = setInterval(refreshBuses, 10000);
+  
+    return () => clearInterval(interval);
+  }, []);
+  
 
   useEffect(() => {
     if (!navigator?.geolocation) return
@@ -32,11 +30,7 @@ export const DashboardPage = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         }),
-<<<<<<< HEAD
-      () => {},
-=======
       () => { },
->>>>>>> a1bec14928c70aacff08ab78572e12f730c5c734
       { enableHighAccuracy: true },
     )
   }, [setUserLocation])
