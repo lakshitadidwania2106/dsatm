@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useI18n } from '../hooks/useI18n'
 import { supportedLanguages } from '../i18n/translations'
 import { useAppStore } from '../store/useAppStore'
+import { ChatAssistant } from '../components/ChatAssistant'
 
 export const AppShell = ({ children }) => {
   const { t, language } = useI18n()
@@ -38,6 +39,7 @@ export const AppShell = ({ children }) => {
         </div>
       </header>
       <main className="content-area">{children}</main>
+      <ChatAssistant />
     </div>
   )
 }

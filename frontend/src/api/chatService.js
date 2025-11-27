@@ -2,7 +2,7 @@ const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL
 const CHAT_API_KEY = import.meta.env.VITE_CHAT_API_KEY
 const CHAT_PROVIDER = import.meta.env.VITE_CHAT_PROVIDER ?? 'openai'
 
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-1.5-flash-latest'
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-2.0-flash'
 const GEMINI_API_KEY =
   import.meta.env.VITE_GEMINI_API_KEY ?? 'AIzaSyBbgTmp2yYqRWsV4xWFGH0yY9TvUyStPlE'
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`

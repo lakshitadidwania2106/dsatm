@@ -1,4 +1,5 @@
 import { AccessibilityPanel } from '../components/AccessibilityPanel'
+import { AccessibilityReports } from '../components/AccessibilityReports'
 import { useI18n } from '../hooks/useI18n'
 
 export const AccessibilityPage = () => {
@@ -12,14 +13,7 @@ export const AccessibilityPage = () => {
       </section>
       <div className="accessibility-grid">
         <AccessibilityPanel />
-        <section className="panel-card tips">
-          <h3>{t('accessibilityTipsTitle')}</h3>
-          <ul>
-            <li>{t('accessibilityTipOne')}</li>
-            <li>{t('accessibilityTipTwo')}</li>
-            <li>{t('accessibilityTipThree')}</li>
-          </ul>
-        </section>
+        <AccessibilityReports />
       </div>
     </div>
   )

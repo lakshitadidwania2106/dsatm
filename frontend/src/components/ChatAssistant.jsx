@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Send } from 'lucide-react'
+import { Loader2, MessageCircle, Send, X } from 'lucide-react'
 import { sendChatPrompt } from '../api/chatService'
 import { useI18n } from '../hooks/useI18n'
 
@@ -10,6 +10,7 @@ export const ChatAssistant = () => {
   ])
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleSend = async () => {
     if (!input.trim()) return
@@ -31,37 +32,57 @@ export const ChatAssistant = () => {
   }
 
   return (
-    <div className="panel-card">
-      <header className="section-header">
-        <div>
-          <p className="eyebrow">{t('chatAssistantTitle')}</p>
-          <h2>{t('chatAssistantTitle')}</h2>
+    <div className="help-widget" data-announce="false">
+      <button
+        className="help-launcher"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+      >
+        <MessageCircle size={18} />
+        <span>Need help?</span>
+      </button>
+      {isOpen && (
+        <div className="panel-card help-drawer">
+          <header className="section-header">
+            <div>
+              <p className="eyebrow">{t('chatAssistantTitle')}</p>
+              <h2>{t('chatAssistantTitle')}</h2>
+            </div>
+            <button
+              type="button"
+              className="ghost close"
+              aria-label="Close"
+              onClick={() => setIsOpen(false)}
+            >
+              <X size={16} />
+            </button>
+          </header>
+          <div className="chat-window">
+            {messages.map((message, index) => (
+              <p key={index} className={`chat-line ${message.role}`}>
+                {message.content}
+              </p>
+            ))}
+          </div>
+          <div className="chat-input">
+            <input
+              placeholder={t('chatPlaceholder')}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  handleSend()
+                }
+              }}
+            />
+            <button className="primary" onClick={handleSend} disabled={isSending}>
+              {isSending ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
+              {t('send')}
+            </button>
+          </div>
         </div>
-      </header>
-      <div className="chat-window">
-        {messages.map((message, index) => (
-          <p key={index} className={`chat-line ${message.role}`}>
-            {message.content}
-          </p>
-        ))}
-      </div>
-      <div className="chat-input">
-        <input
-          placeholder={t('chatPlaceholder')}
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              handleSend()
-            }
-          }}
-        />
-        <button className="primary" onClick={handleSend} disabled={isSending}>
-          {isSending ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
-          {t('send')}
-        </button>
-      </div>
+      )}
     </div>
   )
 }

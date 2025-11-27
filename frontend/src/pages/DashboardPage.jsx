@@ -3,14 +3,10 @@ import { MapView } from '../components/MapView'
 import { RoutePlanner } from '../components/RoutePlanner'
 import { RouteOverview } from '../components/RouteOverview'
 import { BusInfoCard } from '../components/BusInfoCard'
-import { PopularRoutes } from '../components/PopularRoutes'
-import { AccessibilityReports } from '../components/AccessibilityReports'
-import { ChatAssistant } from '../components/ChatAssistant'
 import { useAppStore } from '../store/useAppStore'
 
 export const DashboardPage = () => {
   const refreshBuses = useAppStore((state) => state.refreshBuses)
-  const hydratePopularRoutes = useAppStore((state) => state.hydratePopularRoutes)
   const buses = useAppStore((state) => state.buses)
   const userLocation = useAppStore((state) => state.userLocation)
   const setUserLocation = useAppStore((state) => state.setUserLocation)
@@ -20,10 +16,9 @@ export const DashboardPage = () => {
 
   useEffect(() => {
     refreshBuses()
-    hydratePopularRoutes()
     const interval = setInterval(refreshBuses, 30000)
     return () => clearInterval(interval)
-  }, [refreshBuses, hydratePopularRoutes])
+  }, [refreshBuses])
 
   useEffect(() => {
     if (!navigator?.geolocation) return
@@ -48,14 +43,11 @@ export const DashboardPage = () => {
           routePreview={routePreview}
           onSelectBus={setSelectedBus}
         />
-        <ChatAssistant />
+        <BusInfoCard />
       </div>
       <div className="stacked-panels">
-        <RoutePlanner />
         <RouteOverview />
-        <BusInfoCard />
-        <PopularRoutes />
-        <AccessibilityReports />
+        <RoutePlanner />
       </div>
     </div>
   )
