@@ -1,0 +1,18 @@
+{
+  "name": "transit-data-feed-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for BusBuddy transit data feed",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "verify": "hardhat verify --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
+

@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { CarpoolPage } from './pages/CarpoolPage'
 import { DriverPage } from './pages/DriverPage'
 import { AccessibilityPage } from './pages/AccessibilityPage'
+import { BlockchainLogsPage } from './pages/BlockchainLogsPage'
 import { AppShell } from './layout/AppShell'
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer'
 import { VoiceCommandHandler } from './components/VoiceCommandHandler'
@@ -74,6 +75,16 @@ function App() {
             <ProtectedRoute>
               <AppShell>
                 <AccessibilityPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blockchain"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <BlockchainLogsPage />
               </AppShell>
             </ProtectedRoute>
           }

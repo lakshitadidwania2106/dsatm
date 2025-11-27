@@ -1346,6 +1346,58 @@ nav a[href="/carpool"].active {
   color: #fff;
 }
 
+/* Easy Read Mode Indicator */
+.easy-read-mode-indicator {
+  position: fixed;
+  top: 100px;
+  right: 2rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: #0a1628;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(10, 22, 40, 0.3);
+  font-weight: 600;
+  font-size: 0.95rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.easy-read-mode-indicator svg {
+  animation: pulseIcon 2s infinite;
+}
+
+@keyframes pulseIcon {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@media (max-width: 768px) {
+  .easy-read-mode-indicator {
+    top: 80px;
+    right: 1rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
 .spinning {
   animation: spin 1s linear infinite;
 }

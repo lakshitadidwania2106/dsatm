@@ -6,8 +6,11 @@ import { BusDetailsModal } from '../components/BusDetailsModal'
 import { FieldTripPlanner } from '../components/FieldTripPlanner'
 import { FeasibleRoutes } from '../components/FeasibleRoutes'
 import { useAppStore } from '../store/useAppStore'
+import { useI18n } from '../hooks/useI18n'
+import { Volume2 } from 'lucide-react'
 
 export const DashboardPage = () => {
+  const { t } = useI18n()
   const refreshBuses = useAppStore((state) => state.refreshBuses)
   const buses = useAppStore((state) => state.buses)
   const userLocation = useAppStore((state) => state.userLocation)
@@ -18,6 +21,7 @@ export const DashboardPage = () => {
   const showBusModal = useAppStore((state) => state.showBusModal)
   const setShowBusModal = useAppStore((state) => state.setShowBusModal)
   const checkBusNotifications = useAppStore((state) => state.checkBusNotifications)
+  const accessibilityMode = useAppStore((state) => state.accessibilityMode)
 
   useEffect(() => {
     refreshBuses();
@@ -105,6 +109,12 @@ export const DashboardPage = () => {
 
   return (
     <>
+      {accessibilityMode && (
+        <div className="easy-read-mode-indicator">
+          <Volume2 size={20} />
+          <span>Easy Read Mode ON</span>
+        </div>
+      )}
       <div className="dashboard-grid">
         <div className="map-stack">
           <MapView
