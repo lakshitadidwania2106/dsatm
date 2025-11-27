@@ -129,39 +129,34 @@ export const useAppStore = create((set, get) => ({
   },
 
   planRoute: ({ start, end }) => {
+    const { stops } = get()
     if (!start || !end) {
       set({ routePreview: null })
       return
     }
 
     const normalize = (value = '') => value.trim().toLowerCase()
-    const startStop =
-      cityStops.find((stop) => normalize(stop.name) === normalize(start)) ?? cityStops[0]
-    const endStop =
-      cityStops.find((stop) => normalize(stop.name) === normalize(end)) ?? cityStops[1]
+    const startStop = stops.find((stop) => normalize(stop.name) === normalize(start))
+    const endStop = stops.find((stop) => normalize(stop.name) === normalize(end))
 
-    const makeKey = (a, b) => [a, b].sort().join('-')
-    const catalogKey = makeKey(startStop.id, endStop.id)
-    const catalogRoute = routeCatalog[catalogKey]
+    if (!startStop || !endStop) {
+      console.warn('Start or end stop not found')
+      return
+    }
 
-    const route = catalogRoute ?? {
-      id: catalogKey,
-      name: `${startStop.shortLabel} ⇄ ${endStop.shortLabel}`,
-      distance: 'Approx. 10 km',
-      duration: 'Approx. 30 mins',
-      buses: ['Metro Feeder', 'BMTC 500C'],
+    const route = {
+      id: `custom-${startStop.id}-${endStop.id}`,
+      name: `${startStop.name} ⇄ ${endStop.name}`,
+      distance: 'Calculating...',
+      duration: 'Calculating...',
+      buses: [],
       coordinates: [
         [startStop.lat, startStop.lng],
-        [
-          (startStop.lat + endStop.lat) / 2 + 0.01,
-          (startStop.lng + endStop.lng) / 2 - 0.005,
-        ],
         [endStop.lat, endStop.lng],
       ],
       steps: [
-        `Board near ${startStop.shortLabel}`,
-        'Stay on ORR corridor',
-        `Alight at ${endStop.shortLabel}`,
+        `Board at ${startStop.name}`,
+        `Alight at ${endStop.name}`,
       ],
     }
 
