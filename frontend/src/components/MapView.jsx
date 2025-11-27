@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useI18n } from '../hooks/useI18n'
 import { useAppStore } from '../store/useAppStore'
+import { delhiMetroStations, delhiMetroLineColors } from '../data/delhiMetro'
 
 const MapAutoCenter = ({ center }) => {
   const map = useMap()
@@ -35,7 +36,12 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
     })
   }, [])
 
-  const center = userLocation ? [userLocation.lat, userLocation.lng] : [12.9716, 77.5946]
+  const defaultMetroCenter = delhiMetroStations.length
+    ? [delhiMetroStations[0].latitude, delhiMetroStations[0].longitude]
+    : [12.9716, 77.5946]
+  const center = userLocation ? [userLocation.lat, userLocation.lng] : defaultMetroCenter
+
+  const lineLegend = Object.entries(delhiMetroLineColors).sort((a, b) => a[0].localeCompare(b[0]))
 
   return (
     <div className="map-card">
@@ -72,6 +78,39 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
               />
             </>
           )}
+          {delhiMetroStations.map((station) => {
+            const color = delhiMetroLineColors[station.line] || '#334155'
+            return (
+              <CircleMarker
+                key={station.id}
+                center={[station.latitude, station.longitude]}
+                radius={4}
+                pathOptions={{
+                  color,
+                  fillColor: color,
+                  fillOpacity: 0.9,
+                }}
+              >
+                <Popup>
+                  <strong>{station.name}</strong>
+                  <br />
+                  Line: {station.line}
+                  {station.opened && (
+                    <>
+                      <br />
+                      Opened: {station.opened}
+                    </>
+                  )}
+                  {station.layout && (
+                    <>
+                      <br />
+                      Layout: {station.layout}
+                    </>
+                  )}
+                </Popup>
+              </CircleMarker>
+            )
+          })}
           {buses.map((bus) => (
             <CircleMarker
               key={bus.id}
@@ -96,6 +135,17 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
             </CircleMarker>
           ))}
         </MapContainer>
+        <div className="map-legend">
+          <p className="legend-title">Delhi Metro Lines</p>
+          <div className="legend-grid">
+            {lineLegend.map(([line, color]) => (
+              <div className="legend-row" key={line}>
+                <span className="legend-swatch" style={{ backgroundColor: color }} />
+                <span>{line}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
