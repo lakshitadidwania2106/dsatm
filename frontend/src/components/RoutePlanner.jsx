@@ -21,7 +21,6 @@ export const RoutePlanner = () => {
   const accessibilityFilters = useAppStore((state) => state.accessibilityFilters)
   const setAccessibilityFilters = useAppStore((state) => state.setAccessibilityFilters)
   const sttEnabled = useAppStore((state) => state.sttEnabled)
-  const filteredBuses = useAppStore((state) => state.filteredBuses)
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [selectedRouteId, setSelectedRouteId] = useState('')
@@ -68,9 +67,8 @@ export const RoutePlanner = () => {
       <header className="section-header">
         <div>
           <p className="eyebrow">{t('routePlannerTitle')}</p>
-          <h2>{t('availableBuses')}</h2>
+          <h2>{t('routePlannerTitle')}</h2>
         </div>
-        <span className="meta">{filteredBuses.length}</span>
       </header>
 
       <div className="input-field" style={{ marginBottom: '1rem' }}>
@@ -201,32 +199,6 @@ export const RoutePlanner = () => {
           <option key={stop.id} value={stop.name} />
         ))}
       </datalist>
-      {filteredBuses.length === 0 ? (
-        <p className="empty-text">{t('emptyResults')}</p>
-      ) : (
-        <ul className="bus-results">
-          {filteredBuses.map((bus) => (
-            <li key={bus.id}>
-              <button type="button" onClick={() => setSelectedBus(bus)}>
-                <div>
-                  <strong>{bus.route}</strong>
-                  <p>
-                    {bus.start} → {bus.end}
-                  </p>
-                </div>
-                <div>
-                  <span>
-                    {t('eta')}: {bus.eta}
-                  </span>
-                  <span>
-                    {t('cost')}: {bus.cost}
-                  </span>
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   )
 }

@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { MapView } from '../components/MapView'
-import { RoutePlanner } from '../components/RoutePlanner'
 import { RouteOverview } from '../components/RouteOverview'
 import { BusInfoCard } from '../components/BusInfoCard'
+import { FieldTripPlanner } from '../components/FieldTripPlanner'
 import { useAppStore } from '../store/useAppStore'
 
 export const DashboardPage = () => {
@@ -57,8 +57,8 @@ export const DashboardPage = () => {
         <BusInfoCard />
       </div>
       <div className="stacked-panels">
+        <FieldTripPlanner />
         <RouteOverview />
-        <RoutePlanner />
       </div>
     </div>
   )
