@@ -15,15 +15,14 @@ export const AppShell = ({ children }) => {
           <span className="pulse" />
           <div>
             <strong>{t('appTitle')}</strong>
-            <small>Realtime beta</small>
           </div>
         </div>
         <nav>
           <NavLink to="/" end>
-            Map
+            {t('mapNav')}
           </NavLink>
-          <NavLink to="/feedback">Feedback</NavLink>
-          <NavLink to="/accessibility">Accessibility</NavLink>
+          <NavLink to="/carpool">{t('carpoolNav')}</NavLink>
+          <NavLink to="/accessibility">{t('accessibilityNav')}</NavLink>
         </nav>
         <div className="header-actions">
           <label>

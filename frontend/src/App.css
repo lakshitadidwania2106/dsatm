@@ -689,16 +689,56 @@ nav a.active {
 }
 
 .accessibility-panel {
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 1.75rem;
-  box-shadow: var(--shadow);
+  background: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(10, 22, 40, 0.08);
+}
+
+.accessibility-panel header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: none;
+}
+
+.accessibility-panel header .eyebrow {
+  color: #0a1628;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.accessibility-panel header h3 {
+  color: #0a1628;
+  margin: 0.5rem 0 0;
+  font-size: 1.5rem;
 }
 
 .accessibility-controls {
   display: grid;
   gap: 0.75rem;
+}
+
+.accessibility-controls label {
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.accessibility-controls label:hover {
+  background: #f1f5f9;
+}
+
+.accessibility-controls label input[type="range"] {
+  accent-color: #0a1628;
+}
+
+.accessibility-controls label input[type="checkbox"] {
+  accent-color: #0a1628;
 }
 
 .toggle {
@@ -711,9 +751,15 @@ nav a.active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px dashed var(--border);
+  border: none;
   padding: 0.75rem 1rem;
-  border-radius: 18px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.switch-row .switch-label {
+  color: #0a1628;
+  font-weight: 600;
 }
 
 .switch-row.compact {
@@ -753,7 +799,7 @@ nav a.active {
 }
 
 .switch.on {
-  background: #0f172a;
+  background: #0a1628;
 }
 
 .switch.on .thumb {
@@ -822,18 +868,119 @@ nav a.active {
 .accessibility-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+
+.accessibility-page .hero {
+  background: linear-gradient(135deg, #0a1628 0%, #0f1b2e 100%);
+  color: #fff;
+  border: none;
+  padding: 2rem;
+}
+
+.accessibility-page .hero .eyebrow {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .accessibility-page .hero h1 {
   margin-top: 0.5rem;
   font-size: 2rem;
+  color: #fff;
+}
+
+.accessibility-page .hero p {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .accessibility-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.25rem;
+  gap: 1rem;
+}
+
+.accessibility-grid .panel-card {
+  border: none;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(10, 22, 40, 0.08);
+  background: #fff;
+}
+
+.accessibility-grid .panel-card header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: none;
+}
+
+.accessibility-grid .panel-card .eyebrow {
+  color: #0a1628;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.accessibility-grid .panel-card h2,
+.accessibility-grid .panel-card h3 {
+  color: #0a1628;
+  margin: 0.5rem 0 0;
+}
+
+.report-list {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.report-list article {
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.report-list article p {
+  margin: 0 0 0.5rem;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.report-list article small {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.report-list article span {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #0a1628;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.accessibility-grid .primary {
+  background: #0a1628;
+  color: #fff;
+}
+
+.accessibility-grid .primary:hover {
+  background: #0f1b2e;
+}
+
+.accessibility-grid .pill {
+  border-color: #e2e8f0;
+  color: #0a1628;
+  background: #fff;
+}
+
+.accessibility-grid .pill:hover {
+  background: #0a1628;
+  color: #fff;
+  border-color: #0a1628;
 }
 
 /* Field Trip Planner Styles */

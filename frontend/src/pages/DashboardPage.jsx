@@ -28,15 +28,48 @@ export const DashboardPage = () => {
   
 
   useEffect(() => {
-    if (!navigator?.geolocation) return
+    if (!navigator?.geolocation) {
+      // If geolocation is not available, set a default Delhi location
+      setUserLocation({
+        lat: 28.6139,
+        lng: 77.2090,
+      })
+      return
+    }
+    
+    let locationSet = false
+    
+    // Try to get user location with timeout
+    const timeoutId = setTimeout(() => {
+      // Fallback to Delhi if location takes too long
+      if (!locationSet) {
+        setUserLocation({
+          lat: 28.6139,
+          lng: 77.2090,
+        })
+        locationSet = true
+      }
+    }, 3000)
+    
     navigator.geolocation.getCurrentPosition(
-      (position) =>
+      (position) => {
+        clearTimeout(timeoutId)
+        locationSet = true
         setUserLocation({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
-        }),
-      () => { },
-      { enableHighAccuracy: true },
+        })
+      },
+      () => {
+        clearTimeout(timeoutId)
+        locationSet = true
+        // On error, use Delhi as fallback
+        setUserLocation({
+          lat: 28.6139,
+          lng: 77.2090,
+        })
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     )
   }, [setUserLocation])
 
