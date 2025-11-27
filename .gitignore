@@ -4,10 +4,11 @@ venv/
 env/
 .env
 
-GTFS/
+GTFS/*.txt
 
 # Python
 __pycache__/
+backend/__pycache__/
 *.pyc
 *.pyo
 *.pyd
