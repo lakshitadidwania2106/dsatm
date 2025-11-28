@@ -105,3 +105,4 @@ class BlockchainService:
 # Global instance
 blockchain_service = BlockchainService()
 
+
