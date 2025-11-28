@@ -94,6 +94,25 @@ export const BusDetailsModal = ({ bus, onClose }) => {
               <span className="detail-value">{bus.occupancy}</span>
             </div>
           )}
+          {bus.crowdCapacityRatio !== undefined && (
+            <div className="detail-row">
+              <span className="detail-label">{t('crowdCapacity')}</span>
+              <div className="capacity-display">
+                <span className="detail-value">{bus.crowdCapacityRatio}%</span>
+                <div className="capacity-bar-small">
+                  <div 
+                    className="capacity-fill"
+                    style={{ 
+                      width: `${bus.crowdCapacityRatio}%`,
+                      backgroundColor: bus.crowdCapacityRatio >= 80 ? '#dc2626' : 
+                                      bus.crowdCapacityRatio >= 50 ? '#f59e0b' : 
+                                      bus.crowdCapacityRatio >= 25 ? '#facc15' : '#22c55e'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="notification-section">

@@ -75,6 +75,8 @@ export const useAppStore = create((set, get) => ({
     phone: '+91 98765 43210',
   },
   isSharingLocation: false,
+  crowdCapacityRatio: 50, // Percentage (0-100)
+  setCrowdCapacityRatio: (ratio) => set({ crowdCapacityRatio: ratio }),
   favorites: [],
   favoriteStops: [],
   showBusModal: false,
@@ -192,15 +194,19 @@ export const useAppStore = create((set, get) => ({
   refreshBuses: async (bounds) => {
     set({ isLoadingBuses: true, error: null })
     try {
-      const fetchedBuses = await fetchBuses(bounds)
+      const [fetchedBuses, virtualBuses] = await Promise.all([
+        fetchBuses(bounds),
+        import('../api/busService').then(module => module.fetchVirtualBuses())
+      ])
+
       const currentBuses = get().buses
-      
+
       // Preserve driver buses (buses that start with "driver-")
       const driverBuses = currentBuses.filter(bus => bus.id && bus.id.startsWith('driver-'))
-      
-      // Combine fetched buses with driver buses
-      const allBuses = [...fetchedBuses, ...driverBuses]
-      
+
+      // Combine fetched buses with driver buses and virtual buses
+      const allBuses = [...fetchedBuses, ...virtualBuses, ...driverBuses]
+
       set({
         buses: allBuses,
         filteredBuses: allBuses,
@@ -250,7 +256,7 @@ export const useAppStore = create((set, get) => ({
   checkBusNotifications: () => {
     const { favoriteStops, buses } = get()
     const userLocation = get().userLocation
-    
+
     if (!userLocation || favoriteStops.length === 0) return
 
     favoriteStops.forEach((fs) => {

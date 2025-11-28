@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { MapPin, Bus, User, Navigation, Power, Clock, PlayCircle, Gauge, Route } from 'lucide-react'
+import { MapPin, Bus, User, Navigation, Power, Clock, PlayCircle, Gauge, Route, Users } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { useNavigate } from 'react-router-dom'
 import { DriverMapView } from '../components/DriverMapView'
+import { useI18n } from '../hooks/useI18n'
 import './DriverPage.css'
 
 // Demo route with stops around Connaught Place, Delhi
@@ -34,11 +35,14 @@ const calculateDistance = (lat1, lng1, lat2, lng2) => {
 }
 
 export const DriverPage = () => {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const driverProfile = useAppStore((state) => state.driverProfile)
   const isSharingLocation = useAppStore((state) => state.isSharingLocation)
   const toggleLocationSharing = useAppStore((state) => state.toggleLocationSharing)
   const setUserLocation = useAppStore((state) => state.setUserLocation)
+  const crowdCapacityRatio = useAppStore((state) => state.crowdCapacityRatio)
+  const setCrowdCapacityRatio = useAppStore((state) => state.setCrowdCapacityRatio)
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationInterval, setLocationInterval] = useState(null)
   const [isDemoMode, setIsDemoMode] = useState(false)
@@ -85,6 +89,14 @@ export const DriverPage = () => {
   const updateDriverBusInStore = useCallback((location) => {
     const buses = useAppStore.getState().buses
     const driverBusId = `driver-${driverProfile.busNumber}`
+    const currentCapacityRatio = useAppStore.getState().crowdCapacityRatio
+    
+    // Determine occupancy level based on capacity ratio
+    let occupancy = 'Light'
+    if (currentCapacityRatio >= 80) occupancy = 'High'
+    else if (currentCapacityRatio >= 50) occupancy = 'Moderate'
+    else if (currentCapacityRatio >= 25) occupancy = 'Light'
+    else occupancy = 'Empty'
     
     // Create or update driver bus
     const driverBus = {
@@ -94,7 +106,8 @@ export const DriverPage = () => {
       route: driverProfile.route,
       cost: '₹25',
       eta: 'Now',
-      occupancy: 'Moderate',
+      occupancy: occupancy,
+      crowdCapacityRatio: currentCapacityRatio,
       start: driverProfile.route.split(' → ')[0] || 'Start',
       end: driverProfile.route.split(' → ')[1] || 'End',
       provider: 'Delhi Transit',
@@ -190,7 +203,7 @@ export const DriverPage = () => {
         clearInterval(interval)
       }
     }
-  }, [isSharingLocation, setUserLocation, updateDriverBusInStore, removeDriverBusFromStore, demoBusAdded, currentLocation])
+  }, [isSharingLocation, setUserLocation, updateDriverBusInStore, removeDriverBusFromStore, demoBusAdded, currentLocation, crowdCapacityRatio])
 
   // Demo function - animates bus movement along route
   const handleDemoTracking = () => {
@@ -521,6 +534,79 @@ export const DriverPage = () => {
               <PlayCircle size={18} />
               <span>{demoBusAdded ? 'Demo Running' : 'Demo Test'}</span>
             </button>
+          </section>
+
+          {/* Crowd Capacity Ratio Card - Always visible for driver */}
+          <section className="crowd-capacity-card">
+            <div className="capacity-header">
+              <div className="capacity-title">
+                <Users size={20} />
+                <h3>{t('crowdCapacityRatio')}</h3>
+              </div>
+              <div className="capacity-percentage">
+                <span className="percentage-value">{crowdCapacityRatio}%</span>
+              </div>
+            </div>
+            
+            <p className="capacity-description">
+              {t('adjustOccupancy')}
+            </p>
+            
+            <div className="capacity-slider-container">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={crowdCapacityRatio}
+                onChange={(e) => {
+                  const newRatio = parseInt(e.target.value)
+                  setCrowdCapacityRatio(newRatio)
+                  // Update bus in store immediately when capacity changes
+                  if (currentLocation || isSharingLocation || demoBusAdded) {
+                    if (currentLocation) {
+                      updateDriverBusInStore(currentLocation)
+                    } else {
+                      // If location not set yet, still update the ratio in the bus data
+                      const buses = useAppStore.getState().buses
+                      const driverBusId = `driver-${driverProfile.busNumber}`
+                      const existingBusIndex = buses.findIndex(bus => bus.id === driverBusId)
+                      
+                      if (existingBusIndex >= 0) {
+                        const updatedBuses = [...buses]
+                        updatedBuses[existingBusIndex] = {
+                          ...updatedBuses[existingBusIndex],
+                          crowdCapacityRatio: newRatio,
+                          occupancy: newRatio >= 80 ? 'High' : newRatio >= 50 ? 'Moderate' : newRatio >= 25 ? 'Light' : 'Empty'
+                        }
+                        useAppStore.setState({ buses: updatedBuses, filteredBuses: updatedBuses })
+                      }
+                    }
+                  }
+                }}
+                className="capacity-slider"
+                style={{
+                  '--slider-value': `${crowdCapacityRatio}%`,
+                }}
+              />
+              <div className="slider-labels">
+                <span>Empty</span>
+                <span>Half Full</span>
+                <span>Full</span>
+              </div>
+            </div>
+            
+            <div className="capacity-indicator">
+              <div 
+                className="capacity-bar"
+                style={{ width: `${crowdCapacityRatio}%` }}
+              />
+            </div>
+            
+            {!isSharingLocation && !demoBusAdded && (
+              <p className="capacity-note">
+                <small>Start location sharing to make this visible to passengers</small>
+              </p>
+            )}
           </section>
 
           {/* Bus Status Card */}

@@ -95,6 +95,34 @@
   align-items: center;
 }
 
+.detail-row .capacity-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex: 1;
+}
+
+.detail-row .capacity-display .detail-value {
+  font-weight: 600;
+  color: #0a1628;
+}
+
+.capacity-bar-small {
+  width: 120px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.capacity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #dc2626 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
 .detail-label {
   font-size: 0.9rem;
   color: #64748b;

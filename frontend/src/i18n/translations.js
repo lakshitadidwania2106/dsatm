@@ -6,7 +6,7 @@ export const supportedLanguages = [
 
 export const translations = {
   en: {
-    appTitle: 'BusBuddy',
+    appTitle: 'EasyRide',
     mapTitle: 'Live map near you',
     liveBuses: 'Buses nearby',
     lastUpdated: 'Last updated',
@@ -108,9 +108,14 @@ export const translations = {
     userRoleDesc: 'Find buses, plan routes, and track your journey',
     driverRole: 'Driver',
     driverRoleDesc: 'Manage your route and share live location',
+    crowdCapacity: 'Crowd Capacity',
+    crowdCapacityDesc: 'Adjust the slider to indicate current bus occupancy',
+    empty: 'Empty',
+    halfFull: 'Half Full',
+    full: 'Full',
   },
   hi: {
-    appTitle: 'BusBuddy',
+    appTitle: 'EasyRide',
     mapTitle: 'आपके आसपास का नक्शा',
     liveBuses: 'पास की बसें',
     lastUpdated: 'आखिरी अपडेट',
@@ -211,9 +216,14 @@ export const translations = {
     userRoleDesc: 'बस खोजें, रूट प्लान करें और अपनी यात्रा ट्रैक करें',
     driverRole: 'ड्राइवर',
     driverRoleDesc: 'अपने रूट को प्रबंधित करें और लाइव स्थान साझा करें',
+    crowdCapacity: 'भीड़ क्षमता',
+    crowdCapacityDesc: 'वर्तमान बस अधिभोग दिखाने के लिए स्लाइडर समायोजित करें',
+    empty: 'खाली',
+    halfFull: 'आधी भरी',
+    full: 'भरी हुई',
   },
   kn: {
-    appTitle: 'BusBuddy',
+    appTitle: 'EasyRide',
     mapTitle: 'ನಿಮ್ಮ ಬಳಿಯ ನಕ್ಷೆ',
     liveBuses: 'ಹತ್ತಿರದ ಬಸ್ಸುಗಳು',
     lastUpdated: 'ಕೊನೆಯ ನವೀಕರಣ',
@@ -314,6 +324,9 @@ export const translations = {
     userRoleDesc: 'ಬಸ್‌ಗಳನ್ನು ಹುಡುಕಿ, ಮಾರ್ಗಗಳನ್ನು ಯೋಜಿಸಿ ಮತ್ತು ನಿಮ್ಮ ಪ್ರಯಾಣವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
     driverRole: 'ಚಾಲಕ',
     driverRoleDesc: 'ನಿಮ್ಮ ಮಾರ್ಗವನ್ನು ನಿರ್ವಹಿಸಿ ಮತ್ತು ಲೈವ್ ಸ್ಥಳವನ್ನು ಹಂಚಿಕೊಳ್ಳಿ',
+    crowdCapacity: 'ಭೀಡಿ ಸಾಮರ್ಥ್ಯ',
+    crowdCapacityRatio: 'ಭೀಡಿ ಸಾಮರ್ಥ್ಯ ಅನುಪಾತ',
+    adjustOccupancy: 'ಪ್ರಸ್ತುತ ಬಸ್ ಆಕ್ಯುಪೆನ್ಸಿಯನ್ನು ಸೂಚಿಸಲು ಸ್ಲೈಡರ್ ಸರಿಹೊಂದಿಸಿ. ಇದು ಪ್ರಯಾಣಿಕರಿಗೆ ಗೋಚರಿಸುತ್ತದೆ.',
   },
 }
 

@@ -8,6 +8,7 @@ import { FeasibleRoutes } from '../components/FeasibleRoutes'
 import { useAppStore } from '../store/useAppStore'
 import { useI18n } from '../hooks/useI18n'
 import { Volume2 } from 'lucide-react'
+import BroadcastButton from '../components/BroadcastButton'
 
 export const DashboardPage = () => {
   const { t } = useI18n()
@@ -26,10 +27,10 @@ export const DashboardPage = () => {
   useEffect(() => {
     refreshBuses();
     const interval = setInterval(refreshBuses, 10000);
-  
+
     return () => clearInterval(interval);
   }, []);
-  
+
 
   useEffect(() => {
     if (!navigator?.geolocation) {
@@ -124,18 +125,22 @@ export const DashboardPage = () => {
             routePreview={routePreview}
             onSelectBus={setSelectedBus}
           />
+
           <FeasibleRoutes />
           <BusInfoCard />
         </div>
+
         <div className="stacked-panels">
           <FieldTripPlanner />
           <RouteOverview />
         </div>
+
+        <BroadcastButton />
       </div>
+
       {showBusModal && selectedBus && (
         <BusDetailsModal bus={selectedBus} onClose={handleCloseModal} />
       )}
     </>
   )
 }
-

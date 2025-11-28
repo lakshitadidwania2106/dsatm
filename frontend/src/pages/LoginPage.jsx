@@ -39,7 +39,7 @@ export const LoginPage = () => {
       
       <div className="login-content">
         <div className="login-header">
-          <h1>BusBuddy</h1>
+          <h1>EasyRide</h1>
           <p>{t('chooseRole')}</p>
         </div>
 

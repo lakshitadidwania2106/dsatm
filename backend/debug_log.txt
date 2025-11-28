@@ -1,0 +1,4 @@
+Sample static trip IDs: ['142_12_50', '142_11_17', '142_09_14', '142_14_00', '142_10_44']
+Live Trip ID: '1879_0_6' | In Map? False
+Live Trip ID: '1850_15_00' | In Map? False
+Live Trip ID: '2214_0_13' | In Map? False

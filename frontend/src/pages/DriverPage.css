@@ -711,3 +711,162 @@
   }
 }
 
+/* Crowd Capacity Card */
+.crowd-capacity-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.capacity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.capacity-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.capacity-title h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.capacity-title svg {
+  color: #0a1628;
+}
+
+.capacity-percentage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.percentage-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0a1628;
+}
+
+.capacity-description {
+  margin: 0 0 1.25rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.capacity-note {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.capacity-note small {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.capacity-slider-container {
+  margin-bottom: 1rem;
+}
+
+.capacity-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin-bottom: 0.5rem;
+}
+
+.capacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0a1628;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.capacity-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: #0f1b2e;
+}
+
+.capacity-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0a1628;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.capacity-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  background: #0f1b2e;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.capacity-indicator {
+  width: 100%;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.capacity-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #dc2626 100%);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+/* Capacity display in BusDetailsModal */
+.capacity-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.capacity-bar-small {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.capacity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #dc2626 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
