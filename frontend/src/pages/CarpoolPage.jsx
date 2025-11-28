@@ -1,94 +1,41 @@
-import { useState, useMemo } from 'react'
-import { Hand, Car, Leaf, Users, MapPin, Clock, DollarSign, Star, Repeat, X, CheckCircle } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Hand, Car, Leaf, Users, MapPin, Clock, DollarSign, Star, Repeat, X, CheckCircle, AlertCircle } from 'lucide-react'
 import { LocationSelectorModal } from '../components/LocationSelectorModal'
 import { delhiStops } from '../data/delhiStops'
+import {
+  searchRides,
+  createBooking,
+  createRide,
+  startTracking,
+  stopTracking,
+  updateLocation,
+  getCurrentBookings,
+  getBookingHistory,
+  getPassengerRequests,
+  confirmBooking,
+  CarpoolWebSocket,
+  startLocationTracking,
+} from '../api/carpoolService'
+import { useAppStore } from '../store/useAppStore'
+import { fetchBuses } from '../api/busService'
+import { Bus } from 'lucide-react'
 
 // Mode: 'selector' | 'join' | 'offer'
 const MODE_SELECTOR = 'selector'
 const MODE_JOIN = 'join'
 const MODE_OFFER = 'offer'
 
-// Simulated data
-const recentRequests = [
-  { id: 1, from: 'Connaught Place', to: 'Gurgaon', members: 2 },
-  { id: 2, from: 'Dwarka', to: 'Rajiv Chowk', members: 1 },
-  { id: 3, from: 'Noida', to: 'Karol Bagh', members: 1 },
-]
-
-const currentRide = {
-  driver: 'Priya',
-  rating: 4.9,
-  from: 'Connaught Place',
-  to: 'Gurgaon',
-  eta: '15 min',
-  cost: '₹80',
+// Helper to get user ID (mock for now - should come from auth)
+const getUserId = () => {
+  // In production, get from Supabase auth or store
+  return localStorage.getItem('user_id') || 'user-' + Date.now()
 }
-
-const pastRides = [
-  { id: 1, driver: 'Rahul', from: 'Dwarka', to: 'Rajiv Chowk', date: '2024-01-15', cost: '₹60' },
-  { id: 2, driver: 'Meera', from: 'Noida', to: 'Karol Bagh', date: '2024-01-10', cost: '₹70' },
-]
-
-const availableDrivers = [
-  {
-    id: 1,
-    driver: 'Amit',
-    rating: 4.8,
-    routeStart: 'Rohini',
-    routeEnd: 'Laxmi Nagar',
-    routeCoverage: 85,
-    cost: '₹65',
-    seats: 2,
-    eta: '12 min',
-  },
-  {
-    id: 2,
-    driver: 'Sneha',
-    rating: 4.9,
-    routeStart: 'Connaught Place',
-    routeEnd: 'Gurgaon',
-    routeCoverage: 92,
-    cost: '₹80',
-    seats: 1,
-    eta: '8 min',
-  },
-  {
-    id: 3,
-    driver: 'Vikram',
-    rating: 4.7,
-    routeStart: 'Dwarka',
-    routeEnd: 'Rajiv Chowk',
-    routeCoverage: 78,
-    cost: '₹60',
-    seats: 3,
-    eta: '20 min',
-  },
-]
-
-const passengerRequests = [
-  {
-    id: 1,
-    name: 'Raj',
-    from: 'Connaught Place',
-    to: 'Gurgaon',
-    members: 2,
-    proximity: '0.5 km',
-    deviation: '2.3 km',
-  },
-  {
-    id: 2,
-    name: 'Priya',
-    from: 'Dwarka Sector 10',
-    to: 'Rajiv Chowk',
-    members: 1,
-    proximity: '1.2 km',
-    deviation: '3.1 km',
-  },
-]
 
 export const CarpoolPage = () => {
   const [mode, setMode] = useState(MODE_SELECTOR)
   const [locationModal, setLocationModal] = useState({ isOpen: false, field: null, label: '' })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   
   // Join Ride state
   const [joinFrom, setJoinFrom] = useState('')
@@ -96,14 +43,31 @@ export const CarpoolPage = () => {
   const [joinMembers, setJoinMembers] = useState(1)
   const [joinFromCoords, setJoinFromCoords] = useState(null)
   const [joinToCoords, setJoinToCoords] = useState(null)
+  const [matchingDrivers, setMatchingDrivers] = useState([])
+  const [currentBooking, setCurrentBooking] = useState(null)
+  const [pastRides, setPastRides] = useState([])
+  const [recentRequests, setRecentRequests] = useState([])
   
   // Offer Ride state
   const [offerStart, setOfferStart] = useState('')
   const [offerEnd, setOfferEnd] = useState('')
   const [offerSeats, setOfferSeats] = useState(1)
+  const [costPerPerson, setCostPerPerson] = useState(50)
   const [isTracking, setIsTracking] = useState(false)
+  const [currentRideId, setCurrentRideId] = useState(null)
   const [offerStartCoords, setOfferStartCoords] = useState(null)
   const [offerEndCoords, setOfferEndCoords] = useState(null)
+  const [passengerRequests, setPassengerRequests] = useState([])
+  
+  // WebSocket and location tracking
+  const wsRef = useRef(null)
+  const locationTrackingRef = useRef(null)
+  const userId = getUserId()
+  
+  // Live buses along route
+  const [routeBuses, setRouteBuses] = useState([])
+  const [loadingBuses, setLoadingBuses] = useState(false)
+  const busesRefreshInterval = useRef(null)
 
   const openLocationModal = (field, label) => {
     setLocationModal({ isOpen: true, field, label })
@@ -150,17 +114,393 @@ export const CarpoolPage = () => {
     setLocationModal({ isOpen: false, field: null, label: '' })
   }
 
-  // Filter drivers based on route coverage (no deviation constraint)
-  const matchingDrivers = useMemo(() => {
-    if (!joinFrom || !joinTo) return []
+  // Initialize WebSocket connection
+  useEffect(() => {
+    if (userId) {
+      wsRef.current = new CarpoolWebSocket(userId)
+      wsRef.current.connect().catch(console.error)
+      
+      // Listen for booking confirmations
+      wsRef.current.on('booking_confirmed', (data) => {
+        setCurrentBooking(prev => prev ? { ...prev, status: 'confirmed' } : null)
+      })
+      
+      // Listen for new booking requests (for drivers)
+      wsRef.current.on('new_booking_request', async (data) => {
+        if (currentRideId) {
+          await loadPassengerRequests()
+        }
+      })
+      
+      // Listen for location updates
+      wsRef.current.on('location_update', (data) => {
+        // Update driver location on map if needed
+        console.log('Location update:', data)
+      })
+      
+      return () => {
+        wsRef.current?.disconnect()
+      }
+    }
+  }, [userId, currentRideId])
+
+  // Load current bookings and history
+  useEffect(() => {
+    loadBookings()
+    loadHistory()
+  }, [])
+
+  // Load passenger requests when tracking
+  useEffect(() => {
+    if (isTracking && currentRideId) {
+      loadPassengerRequests()
+      const interval = setInterval(loadPassengerRequests, 10000) // Refresh every 10s
+      return () => clearInterval(interval)
+    }
+  }, [isTracking, currentRideId])
+
+  // Fetch and filter buses along selected route
+  useEffect(() => {
+    const loadRouteBuses = async () => {
+      // For join mode
+      if (mode === MODE_JOIN && joinFromCoords && joinToCoords) {
+        await fetchAndFilterBuses(joinFromCoords, joinToCoords)
+      }
+      // For offer mode
+      if (mode === MODE_OFFER && offerStartCoords && offerEndCoords) {
+        await fetchAndFilterBuses(offerStartCoords, offerEndCoords)
+      }
+    }
+
+    loadRouteBuses()
     
-    // Simulate matching logic - drivers whose route covers passenger's route
-    return availableDrivers.filter(driver => {
-      // In real app, check if passenger's route is on driver's route
-      // For now, return all drivers with route coverage > 70%
-      return driver.routeCoverage >= 70
-    })
-  }, [joinFrom, joinTo])
+    // Refresh buses every 30 seconds
+    busesRefreshInterval.current = setInterval(loadRouteBuses, 30000)
+    
+    return () => {
+      if (busesRefreshInterval.current) {
+        clearInterval(busesRefreshInterval.current)
+      }
+    }
+  }, [mode, joinFromCoords, joinToCoords, offerStartCoords, offerEndCoords])
+
+  // Helper: Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371 // Earth's radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLng = ((lng2 - lng1) * Math.PI) / 180
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
+  // Helper: Calculate distance from point to line segment
+  const distanceToLineSegment = (pointLat, pointLng, lineStartLat, lineStartLng, lineEndLat, lineEndLng) => {
+    // Convert to radians
+    const toRad = (deg) => deg * Math.PI / 180
+    const R = 6371 // Earth radius in km
+    
+    const pLat = toRad(pointLat)
+    const pLng = toRad(pointLng)
+    const sLat = toRad(lineStartLat)
+    const sLng = toRad(lineStartLng)
+    const eLat = toRad(lineEndLat)
+    const eLng = toRad(lineEndLng)
+    
+    // Calculate distance from point to start
+    const dStart = Math.acos(
+      Math.sin(pLat) * Math.sin(sLat) +
+      Math.cos(pLat) * Math.cos(sLat) * Math.cos(pLng - sLng)
+    ) * R
+    
+    // Calculate distance from point to end
+    const dEnd = Math.acos(
+      Math.sin(pLat) * Math.sin(eLat) +
+      Math.cos(pLat) * Math.cos(eLat) * Math.cos(pLng - eLng)
+    ) * R
+    
+    // Calculate distance from point to line segment (simplified - using perpendicular distance)
+    // For simplicity, we'll use the minimum distance to either endpoint or midpoint
+    const midLat = (lineStartLat + lineEndLat) / 2
+    const midLng = (lineStartLng + lineEndLng) / 2
+    const dMid = calculateDistance(pointLat, pointLng, midLat, midLng)
+    
+    return Math.min(dStart, dEnd, dMid)
+  }
+
+  const fetchAndFilterBuses = async (startCoords, endCoords) => {
+    if (!startCoords || !endCoords) return
+    
+    setLoadingBuses(true)
+    try {
+      const allBuses = await fetchBuses()
+      
+      // Filter buses that are near the route (within 2km of the route line)
+      const filteredBuses = allBuses
+        .filter(bus => {
+          if (!bus.lat || !bus.lng) return false
+          
+          // Calculate distance from bus to route line
+          const distance = distanceToLineSegment(
+            bus.lat,
+            bus.lng,
+            startCoords[0],
+            startCoords[1],
+            endCoords[0],
+            endCoords[1]
+          )
+          
+          // Also check if bus is near start or end point (within 1km)
+          const distToStart = calculateDistance(bus.lat, bus.lng, startCoords[0], startCoords[1])
+          const distToEnd = calculateDistance(bus.lat, bus.lng, endCoords[0], endCoords[1])
+          
+          return distance < 2 || distToStart < 1 || distToEnd < 1
+        })
+        .map(bus => {
+          // Calculate distance for sorting and display
+          const distance = distanceToLineSegment(
+            bus.lat,
+            bus.lng,
+            startCoords[0],
+            startCoords[1],
+            endCoords[0],
+            endCoords[1]
+          )
+          return {
+            ...bus,
+            distanceFromRoute: distance
+          }
+        })
+      
+      // Sort by distance to route
+      filteredBuses.sort((a, b) => a.distanceFromRoute - b.distanceFromRoute)
+      
+      setRouteBuses(filteredBuses.slice(0, 20)) // Limit to 20 closest buses
+    } catch (err) {
+      console.error('Error fetching route buses:', err)
+      setRouteBuses([])
+    } finally {
+      setLoadingBuses(false)
+    }
+  }
+
+  const loadBookings = async () => {
+    try {
+      const response = await getCurrentBookings()
+      if (response.bookings && response.bookings.length > 0) {
+        const active = response.bookings.find(b => ['pending', 'confirmed', 'in_progress'].includes(b.status))
+        if (active) {
+          const ride = active.rides
+          setCurrentBooking({
+            id: active.id,
+            driver: ride?.users?.name || 'Driver',
+            rating: ride?.users?.rating || 5.0,
+            from: active.from_location,
+            to: active.to_location,
+            eta: 'Calculating...',
+            cost: `₹${active.cost}`,
+            status: active.status,
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Error loading bookings:', err)
+    }
+  }
+
+  const loadHistory = async () => {
+    try {
+      const response = await getBookingHistory()
+      if (response.history) {
+        setPastRides(response.history.map(h => ({
+          id: h.id,
+          driver: 'Driver', // Would come from join
+          from: h.from_location,
+          to: h.to_location,
+          date: h.ride_date,
+          cost: `₹${h.cost}`,
+        })))
+      }
+    } catch (err) {
+      console.error('Error loading history:', err)
+    }
+  }
+
+  const loadPassengerRequests = async () => {
+    if (!currentRideId) return
+    try {
+      const response = await getPassengerRequests(currentRideId)
+      if (response.requests) {
+        setPassengerRequests(response.requests)
+      }
+    } catch (err) {
+      console.error('Error loading passenger requests:', err)
+    }
+  }
+
+  const handleSearchRides = async () => {
+    if (!joinFrom || !joinTo || !joinFromCoords || !joinToCoords) {
+      setError('Please select both start and destination locations')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await searchRides({
+        fromLocation: joinFrom,
+        fromLat: joinFromCoords[0],
+        fromLng: joinFromCoords[1],
+        toLocation: joinTo,
+        toLat: joinToCoords[0],
+        toLng: joinToCoords[1],
+        members: joinMembers,
+      })
+      setMatchingDrivers(response.rides || [])
+    } catch (err) {
+      setError(err.message || 'Failed to search rides')
+      setMatchingDrivers([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBookRide = async (rideId) => {
+    if (!joinFrom || !joinTo || !joinFromCoords || !joinToCoords) {
+      setError('Please select both start and destination locations')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await createBooking({
+        rideId,
+        fromLocation: joinFrom,
+        fromLat: joinFromCoords[0],
+        fromLng: joinFromCoords[1],
+        toLocation: joinTo,
+        toLat: joinToCoords[0],
+        toLng: joinToCoords[1],
+        members: joinMembers,
+      })
+      
+      if (response.success) {
+        setCurrentBooking({
+          id: response.booking.id,
+          driver: 'Driver',
+          rating: 5.0,
+          from: joinFrom,
+          to: joinTo,
+          eta: 'Pending confirmation',
+          cost: `₹${response.booking.cost}`,
+          status: 'pending',
+        })
+        setError(null)
+        alert('Booking request sent! Waiting for driver confirmation.')
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to book ride')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePublishRide = async () => {
+    if (!offerStart || !offerEnd || !offerStartCoords || !offerEndCoords) {
+      setError('Please select both start and destination locations')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await createRide({
+        startLocation: offerStart,
+        startLat: offerStartCoords[0],
+        startLng: offerStartCoords[1],
+        endLocation: offerEnd,
+        endLat: offerEndCoords[0],
+        endLng: offerEndCoords[1],
+        availableSeats: offerSeats,
+        totalSeats: offerSeats,
+        costPerPerson,
+      })
+      
+      if (response.success) {
+        setCurrentRideId(response.ride.id)
+        await handleStartTracking(response.ride.id)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to create ride')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStartTracking = async (rideId = currentRideId) => {
+    if (!rideId) return
+
+    setLoading(true)
+    try {
+      await startTracking(rideId)
+      setIsTracking(true)
+      
+      // Subscribe to ride updates
+      wsRef.current?.subscribe(rideId)
+      
+      // Start location tracking
+      locationTrackingRef.current = startLocationTracking(
+        rideId,
+        (location) => {
+          // Location updated
+        },
+        5000 // Update every 5 seconds
+      )
+    } catch (err) {
+      setError(err.message || 'Failed to start tracking')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStopTracking = async () => {
+    if (!currentRideId) return
+
+    setLoading(true)
+    try {
+      await stopTracking(currentRideId)
+      setIsTracking(false)
+      
+      // Stop location tracking
+      if (locationTrackingRef.current) {
+        locationTrackingRef.current()
+        locationTrackingRef.current = null
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to stop tracking')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmBooking = async (bookingId) => {
+    setLoading(true)
+    try {
+      await confirmBooking(bookingId)
+      await loadPassengerRequests()
+      setError(null)
+    } catch (err) {
+      setError(err.message || 'Failed to confirm booking')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (mode === MODE_SELECTOR) {
     return (
@@ -326,9 +666,19 @@ export const CarpoolPage = () => {
                 </select>
               </div>
 
-              <button className="primary search-button" disabled={!joinFrom || !joinTo}>
-                Search Rides
+              <button 
+                className="primary search-button" 
+                disabled={!joinFrom || !joinTo || loading}
+                onClick={handleSearchRides}
+              >
+                {loading ? 'Searching...' : 'Search Rides'}
               </button>
+              {error && (
+                <div className="error-message" style={{ color: 'red', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  {error}
+                </div>
+              )}
             </div>
 
             <div className="recent-requests-section">
@@ -361,28 +711,33 @@ export const CarpoolPage = () => {
           <div className="carpool-right-panel">
             <div className="current-ride-section">
               <h3>Current Booked Ride</h3>
-              {currentRide ? (
+              {currentBooking ? (
                 <div className="current-ride-card">
                   <div className="ride-header">
                     <div className="driver-info">
-                      <div className="driver-avatar">{currentRide.driver[0]}</div>
+                      <div className="driver-avatar">{currentBooking.driver[0]}</div>
                       <div>
-                        <strong>{currentRide.driver}</strong>
+                        <strong>{currentBooking.driver}</strong>
                         <div className="rating">
                           <Star size={14} fill="#fbbf24" />
-                          {currentRide.rating}
+                          {currentBooking.rating}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="ride-route">
                     <MapPin size={14} />
-                    {currentRide.from} → {currentRide.to}
+                    {currentBooking.from} → {currentBooking.to}
                   </div>
                   <div className="ride-meta">
-                    <span><Clock size={14} /> ETA: {currentRide.eta}</span>
-                    <span><DollarSign size={14} /> {currentRide.cost}</span>
+                    <span><Clock size={14} /> ETA: {currentBooking.eta}</span>
+                    <span><DollarSign size={14} /> {currentBooking.cost}</span>
                   </div>
+                  {currentBooking.status === 'pending' && (
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#f59e0b' }}>
+                      Waiting for driver confirmation...
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="empty-state">No active ride</p>
@@ -406,7 +761,7 @@ export const CarpoolPage = () => {
             </div>
 
             {/* Matching Results */}
-            {joinFrom && joinTo && (
+            {matchingDrivers.length > 0 && (
               <div className="matching-results-section">
                 <h3>Available Rides</h3>
                 <div className="driver-cards-list">
@@ -445,10 +800,150 @@ export const CarpoolPage = () => {
                         <span><Clock size={14} /> {driver.eta}</span>
                         <span className="cost"><DollarSign size={14} /> {driver.cost}</span>
                       </div>
-                      <button className="primary small">Book Ride</button>
+                      <button 
+                        className="primary small"
+                        onClick={() => handleBookRide(driver.id)}
+                        disabled={loading}
+                      >
+                        {loading ? 'Booking...' : 'Book Ride'}
+                      </button>
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+            {matchingDrivers.length === 0 && joinFrom && joinTo && !loading && (
+              <div className="matching-results-section">
+                <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                  No matching rides found. Try adjusting your search criteria.
+                </p>
+              </div>
+            )}
+
+            {/* Live Buses on Route */}
+            {joinFrom && joinTo && (
+              <div className="route-buses-section">
+                <h3>
+                  <Bus size={18} style={{ marginRight: '8px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  Live Buses on Your Route
+                  {routeBuses.length > 0 && (
+                    <span style={{ 
+                      marginLeft: '8px', 
+                      fontSize: '14px', 
+                      fontWeight: 'normal', 
+                      color: '#666' 
+                    }}>
+                      ({routeBuses.length} {routeBuses.length === 1 ? 'bus' : 'buses'})
+                    </span>
+                  )}
+                  <span style={{ 
+                    marginLeft: '8px', 
+                    fontSize: '11px', 
+                    fontWeight: 'normal', 
+                    color: '#16a34a',
+                    fontStyle: 'italic'
+                  }}>
+                    (Live from OTD API)
+                  </span>
+                </h3>
+                {loadingBuses ? (
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                    Loading buses from OTD API...
+                  </p>
+                ) : routeBuses.length > 0 ? (
+                  <div className="buses-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    {routeBuses.map((bus, idx) => {
+                      const speedKmh = bus.speed !== undefined && bus.speed > 0 
+                        ? (bus.speed * 3.6).toFixed(1) 
+                        : null
+                      const isMoving = speedKmh && parseFloat(speedKmh) > 5
+                      
+                      return (
+                        <div key={bus.id || idx} className="bus-item-card" style={{
+                          padding: '14px',
+                          marginBottom: '10px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          transition: 'all 0.2s'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <Bus size={18} color={isMoving ? "#16a34a" : "#f59e0b"} />
+                                <div>
+                                  <strong style={{ fontSize: '15px', color: '#1f2937' }}>
+                                    {bus.trip_id ? `Trip ${bus.trip_id}` : `Bus ${bus.id?.substring(0, 12) || 'Unknown'}`}
+                                  </strong>
+                                  {isMoving && (
+                                    <span style={{ 
+                                      marginLeft: '8px', 
+                                      fontSize: '11px', 
+                                      color: '#16a34a',
+                                      fontWeight: 'normal'
+                                    }}>
+                                      ● Live
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.6' }}>
+                                <div style={{ marginBottom: '4px' }}>
+                                  <strong>Location:</strong> {bus.lat?.toFixed(6)}, {bus.lng?.toFixed(6)}
+                                </div>
+                                {speedKmh && (
+                                  <div style={{ marginBottom: '4px' }}>
+                                    <strong>Speed:</strong> {speedKmh} km/h
+                                    <span style={{ marginLeft: '8px', color: isMoving ? '#16a34a' : '#f59e0b' }}>
+                                      {isMoving ? 'Moving' : 'Stopped'}
+                                    </span>
+                                  </div>
+                                )}
+                                {bus.distanceFromRoute !== undefined && (
+                                  <div style={{ marginBottom: '4px' }}>
+                                    <strong>Distance from route:</strong> {bus.distanceFromRoute.toFixed(2)} km
+                                  </div>
+                                )}
+                                {bus.trip_id && (
+                                  <div style={{ marginBottom: '4px' }}>
+                                    <strong>Trip ID:</strong> {bus.trip_id}
+                                  </div>
+                                )}
+                                {bus.route && (
+                                  <div>
+                                    <strong>Route:</strong> {bus.route}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ 
+                              fontSize: '11px', 
+                              color: '#999', 
+                              textAlign: 'right',
+                              paddingLeft: '12px'
+                            }}>
+                              <div style={{ marginBottom: '4px' }}>
+                                {bus.provider || 'Delhi Transit'}
+                              </div>
+                              <div style={{ 
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                fontStyle: 'italic'
+                              }}>
+                                Live Data
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px', fontSize: '14px' }}>
+                    No buses currently on this route
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -562,6 +1057,25 @@ export const CarpoolPage = () => {
                 </div>
               </div>
 
+              <div className="input-group">
+                <label>Cost per Person (₹)</label>
+                <input
+                  type="number"
+                  value={costPerPerson}
+                  onChange={(e) => setCostPerPerson(Number(e.target.value))}
+                  min="10"
+                  max="500"
+                  placeholder="50"
+                />
+              </div>
+
+              {error && (
+                <div className="error-message" style={{ color: 'red', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  {error}
+                </div>
+              )}
+
               <div className="tracking-status">
                 <div className="status-indicator">
                   {isTracking && (
@@ -573,16 +1087,16 @@ export const CarpoolPage = () => {
                 </div>
                 <button
                   className={`primary ${isTracking ? 'stop' : 'start'}`}
-                  onClick={() => setIsTracking(!isTracking)}
-                  disabled={!offerStart || !offerEnd}
+                  onClick={isTracking ? handleStopTracking : handlePublishRide}
+                  disabled={!offerStart || !offerEnd || loading}
                 >
-                  {isTracking ? 'Stop Tracking' : 'Publish & Start Tracking'}
+                  {loading ? 'Processing...' : isTracking ? 'Stop Tracking' : 'Publish & Start Tracking'}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Right Half - Passenger Requests */}
+          {/* Right Half - Passenger Requests & Buses */}
           <div className="carpool-right-panel">
             <h2>New Passenger Requests</h2>
             <div className="passenger-requests-list">
@@ -606,11 +1120,20 @@ export const CarpoolPage = () => {
                     <span>Deviation: {req.deviation}</span>
                   </div>
                   <div className="request-actions">
-                    <button className="secondary ignore-button">
+                    <button 
+                      className="secondary ignore-button"
+                      onClick={() => {
+                        setPassengerRequests(prev => prev.filter(r => r.id !== req.id))
+                      }}
+                    >
                       <X size={16} />
                       Ignore
                     </button>
-                    <button className="primary offer-button">
+                    <button 
+                      className="primary offer-button"
+                      onClick={() => handleConfirmBooking(req.id)}
+                      disabled={loading}
+                    >
                       <CheckCircle size={16} />
                       Offer Ride
                     </button>
@@ -618,6 +1141,133 @@ export const CarpoolPage = () => {
                 </div>
               ))}
             </div>
+
+            {/* Live Buses on Route */}
+            {offerStart && offerEnd && (
+              <div className="route-buses-section" style={{ marginTop: '24px' }}>
+                <h3>
+                  <Bus size={18} style={{ marginRight: '8px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  Live Buses on Your Route
+                  {routeBuses.length > 0 && (
+                    <span style={{ 
+                      marginLeft: '8px', 
+                      fontSize: '14px', 
+                      fontWeight: 'normal', 
+                      color: '#666' 
+                    }}>
+                      ({routeBuses.length} {routeBuses.length === 1 ? 'bus' : 'buses'})
+                    </span>
+                  )}
+                  <span style={{ 
+                    marginLeft: '8px', 
+                    fontSize: '11px', 
+                    fontWeight: 'normal', 
+                    color: '#16a34a',
+                    fontStyle: 'italic'
+                  }}>
+                    (Live from OTD API)
+                  </span>
+                </h3>
+                {loadingBuses ? (
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                    Loading buses from OTD API...
+                  </p>
+                ) : routeBuses.length > 0 ? (
+                  <div className="buses-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    {routeBuses.map((bus, idx) => {
+                      const speedKmh = bus.speed !== undefined && bus.speed > 0 
+                        ? (bus.speed * 3.6).toFixed(1) 
+                        : null
+                      const isMoving = speedKmh && parseFloat(speedKmh) > 5
+                      
+                      return (
+                        <div key={bus.id || idx} className="bus-item-card" style={{
+                          padding: '14px',
+                          marginBottom: '10px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          backgroundColor: '#ffffff',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          transition: 'all 0.2s'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <Bus size={18} color={isMoving ? "#16a34a" : "#f59e0b"} />
+                                <div>
+                                  <strong style={{ fontSize: '15px', color: '#1f2937' }}>
+                                    {bus.trip_id ? `Trip ${bus.trip_id}` : `Bus ${bus.id?.substring(0, 12) || 'Unknown'}`}
+                                  </strong>
+                                  {isMoving && (
+                                    <span style={{ 
+                                      marginLeft: '8px', 
+                                      fontSize: '11px', 
+                                      color: '#16a34a',
+                                      fontWeight: 'normal'
+                                    }}>
+                                      ● Live
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.6' }}>
+                                <div style={{ marginBottom: '4px' }}>
+                                  <strong>Location:</strong> {bus.lat?.toFixed(6)}, {bus.lng?.toFixed(6)}
+                                </div>
+                                {speedKmh && (
+                                  <div style={{ marginBottom: '4px' }}>
+                                    <strong>Speed:</strong> {speedKmh} km/h
+                                    <span style={{ marginLeft: '8px', color: isMoving ? '#16a34a' : '#f59e0b' }}>
+                                      {isMoving ? 'Moving' : 'Stopped'}
+                                    </span>
+                                  </div>
+                                )}
+                                {bus.distanceFromRoute !== undefined && (
+                                  <div style={{ marginBottom: '4px' }}>
+                                    <strong>Distance from route:</strong> {bus.distanceFromRoute.toFixed(2)} km
+                                  </div>
+                                )}
+                                {bus.trip_id && (
+                                  <div style={{ marginBottom: '4px' }}>
+                                    <strong>Trip ID:</strong> {bus.trip_id}
+                                  </div>
+                                )}
+                                {bus.route && (
+                                  <div>
+                                    <strong>Route:</strong> {bus.route}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ 
+                              fontSize: '11px', 
+                              color: '#999', 
+                              textAlign: 'right',
+                              paddingLeft: '12px'
+                            }}>
+                              <div style={{ marginBottom: '4px' }}>
+                                {bus.provider || 'Delhi Transit'}
+                              </div>
+                              <div style={{ 
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                fontStyle: 'italic'
+                              }}>
+                                Live Data
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px', fontSize: '14px' }}>
+                    No buses currently on this route
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

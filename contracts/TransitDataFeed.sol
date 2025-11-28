@@ -121,5 +121,234 @@ contract TransitDataFeed {
         
         return indices;
     }
+
+    // ========== CARPOOL EXTENSIONS ==========
+    
+    // Carpool Ride Structure
+    struct CarpoolRide {
+        uint256 timestamp;
+        address driver;
+        string rideId;
+        string startLocation;
+        string endLocation;
+        uint256 availableSeats;
+        uint256 costPerPerson;
+        string busRoute;
+        string busTripId;
+        bool isActive;
+    }
+
+    // Carpool Booking Structure
+    struct CarpoolBooking {
+        uint256 timestamp;
+        address passenger;
+        string bookingId;
+        string rideId;
+        string fromLocation;
+        string toLocation;
+        uint256 members;
+        uint256 totalCost;
+        string status; // "pending", "confirmed", "completed", "cancelled"
+    }
+
+    // Arrays to store carpool data
+    CarpoolRide[] public carpoolRides;
+    CarpoolBooking[] public carpoolBookings;
+
+    // Mappings for quick lookups
+    mapping(string => uint256) public rideIdToIndex;
+    mapping(string => uint256) public bookingIdToIndex;
+    mapping(address => uint256[]) public ridesByDriver;
+    mapping(string => uint256[]) public ridesByBusRoute;
+
+    // Carpool Events
+    event CarpoolRideCreated(
+        uint256 indexed rideIndex,
+        address indexed driver,
+        string rideId,
+        string startLocation,
+        string endLocation,
+        uint256 availableSeats,
+        string busRoute
+    );
+
+    event CarpoolBookingCreated(
+        uint256 indexed bookingIndex,
+        address indexed passenger,
+        string bookingId,
+        string rideId,
+        string status
+    );
+
+    event CarpoolBookingConfirmed(
+        uint256 indexed bookingIndex,
+        string bookingId,
+        string rideId
+    );
+
+    event CarpoolRideCompleted(
+        uint256 indexed rideIndex,
+        string rideId,
+        uint256 totalPassengers
+    );
+
+    /**
+     * @dev Create a new carpool ride
+     */
+    function createCarpoolRide(
+        string memory _rideId,
+        string memory _startLocation,
+        string memory _endLocation,
+        uint256 _availableSeats,
+        uint256 _costPerPerson,
+        string memory _busRoute,
+        string memory _busTripId
+    ) public {
+        uint256 rideIndex = carpoolRides.length;
+        
+        carpoolRides.push(CarpoolRide(
+            block.timestamp,
+            msg.sender,
+            _rideId,
+            _startLocation,
+            _endLocation,
+            _availableSeats,
+            _costPerPerson,
+            _busRoute,
+            _busTripId,
+            true
+        ));
+
+        rideIdToIndex[_rideId] = rideIndex;
+        ridesByDriver[msg.sender].push(rideIndex);
+        ridesByBusRoute[_busRoute].push(rideIndex);
+
+        emit CarpoolRideCreated(
+            rideIndex,
+            msg.sender,
+            _rideId,
+            _startLocation,
+            _endLocation,
+            _availableSeats,
+            _busRoute
+        );
+    }
+
+    /**
+     * @dev Create a booking request
+     */
+    function createCarpoolBooking(
+        string memory _bookingId,
+        string memory _rideId,
+        string memory _fromLocation,
+        string memory _toLocation,
+        uint256 _members
+    ) public {
+        require(rideIdToIndex[_rideId] > 0 || carpoolRides.length > 0, "Ride not found");
+        
+        uint256 rideIndex = rideIdToIndex[_rideId];
+        CarpoolRide storage ride = carpoolRides[rideIndex];
+        require(ride.isActive, "Ride is not active");
+        require(ride.availableSeats >= _members, "Not enough seats available");
+
+        uint256 totalCost = ride.costPerPerson * _members;
+        
+        uint256 bookingIndex = carpoolBookings.length;
+        
+        carpoolBookings.push(CarpoolBooking(
+            block.timestamp,
+            msg.sender,
+            _bookingId,
+            _rideId,
+            _fromLocation,
+            _toLocation,
+            _members,
+            totalCost,
+            "pending"
+        ));
+
+        bookingIdToIndex[_bookingId] = bookingIndex;
+
+        emit CarpoolBookingCreated(
+            bookingIndex,
+            msg.sender,
+            _bookingId,
+            _rideId,
+            "pending"
+        );
+    }
+
+    /**
+     * @dev Confirm a booking (only ride driver can call this)
+     */
+    function confirmCarpoolBooking(
+        string memory _bookingId,
+        string memory _rideId
+    ) public {
+        require(bookingIdToIndex[_bookingId] > 0 || carpoolBookings.length > 0, "Booking not found");
+        require(rideIdToIndex[_rideId] > 0 || carpoolRides.length > 0, "Ride not found");
+        
+        uint256 bookingIndex = bookingIdToIndex[_bookingId];
+        uint256 rideIndex = rideIdToIndex[_rideId];
+        
+        CarpoolBooking storage booking = carpoolBookings[bookingIndex];
+        CarpoolRide storage ride = carpoolRides[rideIndex];
+        
+        require(ride.driver == msg.sender, "Only driver can confirm booking");
+        require(keccak256(bytes(booking.rideId)) == keccak256(bytes(_rideId)), "Booking does not match ride");
+        require(keccak256(bytes(booking.status)) == keccak256(bytes("pending")), "Booking is not pending");
+        
+        booking.status = "confirmed";
+        ride.availableSeats -= booking.members;
+
+        emit CarpoolBookingConfirmed(bookingIndex, _bookingId, _rideId);
+    }
+
+    /**
+     * @dev Mark a ride as completed
+     */
+    function completeCarpoolRide(string memory _rideId) public {
+        require(rideIdToIndex[_rideId] > 0 || carpoolRides.length > 0, "Ride not found");
+        
+        uint256 rideIndex = rideIdToIndex[_rideId];
+        CarpoolRide storage ride = carpoolRides[rideIndex];
+        
+        require(ride.driver == msg.sender, "Only driver can complete ride");
+        require(ride.isActive, "Ride is not active");
+        
+        ride.isActive = false;
+        
+        // Count total passengers from confirmed bookings
+        uint256 totalPassengers = 0;
+        for (uint256 i = 0; i < carpoolBookings.length; i++) {
+            if (keccak256(bytes(carpoolBookings[i].rideId)) == keccak256(bytes(_rideId)) &&
+                keccak256(bytes(carpoolBookings[i].status)) == keccak256(bytes("confirmed"))) {
+                totalPassengers += carpoolBookings[i].members;
+            }
+        }
+
+        emit CarpoolRideCompleted(rideIndex, _rideId, totalPassengers);
+    }
+
+    /**
+     * @dev Get carpool ride count
+     */
+    function getCarpoolRideCount() public view returns (uint256) {
+        return carpoolRides.length;
+    }
+
+    /**
+     * @dev Get carpool booking count
+     */
+    function getCarpoolBookingCount() public view returns (uint256) {
+        return carpoolBookings.length;
+    }
+
+    /**
+     * @dev Get rides by bus route
+     */
+    function getCarpoolRidesByBusRoute(string memory _busRoute) public view returns (uint256[] memory) {
+        return ridesByBusRoute[_busRoute];
+    }
 }
 
