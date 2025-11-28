@@ -32,7 +32,7 @@ def load_stops(route_id):
         print(f"Error loading stops: {e}")
         return []
 
-def simulate_trip(user_id, route_id, speed_factor=1.0, offset_lat=0, offset_lng=0, payload_speed=0.0):
+def simulate_trip(user_id, route_id, speed_factor=1.0, offset_lat=0, offset_lng=0, payload_speed=0.0, role="passenger"):
     shapes = load_shapes()
     
     # If route_id not provided or not found, pick a random one
@@ -49,7 +49,7 @@ def simulate_trip(user_id, route_id, speed_factor=1.0, offset_lat=0, offset_lng=
     path = shapes[route_id] # List of [lat, lng]
     stops = load_stops(route_id)
     
-    print(f"👻 Ghost Rider '{user_id}' starting trip on Route {route_id}...")
+    print(f"👻 Ghost Rider '{user_id}' ({role}) starting trip on Route {route_id}...")
     print(f"   Path length: {len(path)} points")
     print(f"   Stops found: {len(stops)}")
     print(f"   Speed factor: {speed_factor}x")
@@ -63,10 +63,6 @@ def simulate_trip(user_id, route_id, speed_factor=1.0, offset_lat=0, offset_lng=
     for i in range(0, len(path), step):
         lat, lng = path[i]
         
-        # Check if we are near a stop to simulate "stopping"
-        # Simple check: if distance to any stop < 50m
-        # (This logic is just for visual feedback in the script, the backend does the real check)
-        
         # Apply offset (for simulating multiple users on same bus)
         lat += offset_lat
         lng += offset_lng
@@ -77,7 +73,8 @@ def simulate_trip(user_id, route_id, speed_factor=1.0, offset_lat=0, offset_lng=
             "lat": lat,
             "lng": lng,
             "timestamp": time.time(),
-            "speed": payload_speed
+            "speed": payload_speed,
+            "role": role
         }
         
         try:
@@ -106,7 +103,8 @@ if __name__ == "__main__":
     parser.add_argument('--offset_lat', type=float, default=0.0, help='Latitude offset')
     parser.add_argument('--offset_lng', type=float, default=0.0, help='Longitude offset')
     parser.add_argument('--payload-speed', type=float, default=0.0, help='Speed value to send in payload')
+    parser.add_argument('--role', type=str, default="passenger", help='Role: passenger or driver')
 
     args = parser.parse_args()
     
-    simulate_trip(args.user, args.route, args.speed, args.offset_lat, args.offset_lng, args.payload_speed)
+    simulate_trip(args.user, args.route, args.speed, args.offset_lat, args.offset_lng, args.payload_speed, args.role)

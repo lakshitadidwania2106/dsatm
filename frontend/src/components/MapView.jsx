@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import polyline from '@mapbox/polyline'
 import { useI18n } from '../hooks/useI18n'
 import { useAppStore } from '../store/useAppStore'
 import { SmoothBusMarker } from './SmoothBusMarker'
@@ -68,24 +69,16 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
   const defaultDelhiCenter = [28.6139, 77.2090] // Connaught Place, Delhi
   const mapCenter = userLocation ? [userLocation.lat, userLocation.lng] : defaultDelhiCenter
 
-  // Fetch Virtual Buses and Shapes
+  // Fetch Shapes
   useEffect(() => {
-    const fetchVirtual = async () => {
-      const vBuses = await fetchVirtualBuses();
-      setVirtualBuses(vBuses);
-    };
-
     const loadShapes = async () => {
       const data = await fetchShapes();
       setShapes(data);
     };
 
-    fetchVirtual();
     loadShapes();
-
-    const interval = setInterval(fetchVirtual, 5000);
-    return () => clearInterval(interval);
   }, []);
+
   const defaultMetroCenter = delhiMetroStations.length
     ? [delhiMetroStations[0].latitude, delhiMetroStations[0].longitude]
     : defaultDelhiCenter
@@ -93,8 +86,8 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
 
   const lineLegend = Object.entries(delhiMetroLineColors).sort((a, b) => a[0].localeCompare(b[0]))
 
-  // Merge real and virtual buses for display
-  const allBuses = [...buses, ...virtualBuses];
+  // Use buses from prop (which now includes virtual buses)
+  const allBuses = buses;
 
   return (
     <div className="map-card">
@@ -116,32 +109,55 @@ export const MapView = ({ buses, onSelectBus, selectedBus, userLocation, routePr
               <Popup>{t('locating')}</Popup>
             </CircleMarker>
           )}
-          {routePreview?.coordinates && (
-            <>
-              <Polyline
-                positions={routePreview.coordinates}
-                pathOptions={{
-                  color: '#2563eb',
-                  weight: 6,
-                  opacity: 0.8,
-                  dashArray: '10, 5'
-                }}
-              />
-              <CircleMarker
-                center={routePreview.coordinates[0]}
-                radius={10}
-                pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 1 }}
-              >
-                <Popup>Start: {routePreview.route?.boarding || 'Start'}</Popup>
-              </CircleMarker>
-              <CircleMarker
-                center={routePreview.coordinates[routePreview.coordinates.length - 1]}
-                radius={10}
-                pathOptions={{ color: '#16a34a', fillColor: '#16a34a', fillOpacity: 1 }}
-              >
-                <Popup>End: {routePreview.route?.alighting || 'End'}</Popup>
-              </CircleMarker>
-            </>
+          {routePreview?.legs ? (
+            // OTP Route Rendering
+            routePreview.legs.map((leg, index) => {
+              const positions = polyline.decode(leg.legGeometry.points)
+              const color = leg.mode === 'WALK' ? '#64748b' : '#2563eb' // Gray for walk, Blue for transit
+              const dashArray = leg.mode === 'WALK' ? '5, 10' : null
+
+              return (
+                <Polyline
+                  key={index}
+                  positions={positions}
+                  pathOptions={{
+                    color,
+                    weight: 6,
+                    opacity: 0.8,
+                    dashArray
+                  }}
+                />
+              )
+            })
+          ) : (
+            // Fallback for Mock Route (if any)
+            routePreview?.coordinates && (
+              <>
+                <Polyline
+                  positions={routePreview.coordinates}
+                  pathOptions={{
+                    color: '#2563eb',
+                    weight: 6,
+                    opacity: 0.8,
+                    dashArray: '10, 5'
+                  }}
+                />
+                <CircleMarker
+                  center={routePreview.coordinates[0]}
+                  radius={10}
+                  pathOptions={{ color: '#2563eb', fillColor: '#2563eb', fillOpacity: 1 }}
+                >
+                  <Popup>Start: {routePreview.route?.boarding || 'Start'}</Popup>
+                </CircleMarker>
+                <CircleMarker
+                  center={routePreview.coordinates[routePreview.coordinates.length - 1]}
+                  radius={10}
+                  pathOptions={{ color: '#16a34a', fillColor: '#16a34a', fillOpacity: 1 }}
+                >
+                  <Popup>End: {routePreview.route?.alighting || 'End'}</Popup>
+                </CircleMarker>
+              </>
+            )
           )}
           {delhiMetroStations.map((station) => {
             const color = delhiMetroLineColors[station.line] || '#334155'

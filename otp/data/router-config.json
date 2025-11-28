@@ -1,0 +1,10 @@
+{
+    "updaters": [
+        {
+            "type": "real-time-alerts",
+            "frequencySec": 30,
+            "url": "https://otd.delhi.gov.in/api/realtime/VehiclePositions.pb?key=Njl90zyCwKNqpVkuyF8K0ZNpwTkAbdX4",
+            "feedId": "delhi-bus"
+        }
+    ]
+}

@@ -87,7 +87,6 @@ export const useAppStore = create((set, get) => ({
   setFontScale: (fontScale) => set({ fontScale }),
   toggleHighContrast: () => set((state) => ({ highContrast: !state.highContrast })),
   setDriverProfile: (profile) => set({ driverProfile: { ...get().driverProfile, ...profile } }),
-  toggleLocationSharing: () => set((state) => ({ isSharingLocation: !state.isSharingLocation })),
   setSpeechPreferences: (preferences = {}) =>
     set((state) => ({
       sttEnabled: preferences.sttEnabled ?? state.sttEnabled,
@@ -151,44 +150,56 @@ export const useAppStore = create((set, get) => ({
     set({ filteredBuses: results })
   },
 
-  planRoute: ({ start, end }) => {
+  planRoute: async ({ start, end }) => {
     if (!start || !end) {
       set({ routePreview: null })
       return
     }
 
+    const { cityStops } = get()
     const normalize = (value = '') => value.trim().toLowerCase()
-    const startStop =
-      cityStops.find((stop) => normalize(stop.name) === normalize(start)) ?? cityStops[0]
-    const endStop =
-      cityStops.find((stop) => normalize(stop.name) === normalize(end)) ?? cityStops[1]
+    const startStop = cityStops.find((stop) => normalize(stop.name) === normalize(start))
+    const endStop = cityStops.find((stop) => normalize(stop.name) === normalize(end))
 
-    const makeKey = (a, b) => [a, b].sort().join('-')
-    const catalogKey = makeKey(startStop.id, endStop.id)
-    const catalogRoute = routeCatalog[catalogKey]
-
-    const route = catalogRoute ?? {
-      id: catalogKey,
-      name: `${startStop.shortLabel} ⇄ ${endStop.shortLabel}`,
-      distance: 'Approx. 10 km',
-      duration: 'Approx. 30 mins',
-      buses: ['Metro Feeder', 'BMTC 500C'],
-      coordinates: [
-        [startStop.lat, startStop.lng],
-        [
-          (startStop.lat + endStop.lat) / 2 + 0.01,
-          (startStop.lng + endStop.lng) / 2 - 0.005,
-        ],
-        [endStop.lat, endStop.lng],
-      ],
-      steps: [
-        `Board near ${startStop.shortLabel}`,
-        'Stay on ORR corridor',
-        `Alight at ${endStop.shortLabel}`,
-      ],
+    if (!startStop || !endStop) {
+      console.warn("Start or End stop not found in cityStops")
+      return
     }
 
-    set({ routePreview: route })
+    try {
+      const { planTrip } = await import('../api/otpService')
+      const itineraries = await planTrip({
+        from: { lat: startStop.lat, lng: startStop.lng },
+        to: { lat: endStop.lat, lng: endStop.lng },
+        modes: ['WALK', 'BUS'] // Default modes
+      })
+
+      if (itineraries && itineraries.length > 0) {
+        // Transform OTP itinerary to our app's route format (simplified for now)
+        // We take the first itinerary
+        const bestItinerary = itineraries[0]
+
+        const route = {
+          id: `otp-${Date.now()}`,
+          name: `${startStop.shortLabel} ⇄ ${endStop.shortLabel}`,
+          distance: 'Calculating...', // OTP gives duration, distance is in legs
+          duration: `${Math.round(bestItinerary.duration / 60)} mins`,
+          buses: bestItinerary.legs.filter(l => l.mode === 'BUS').map(l => l.route?.shortName || 'Bus'),
+          coordinates: [], // We need to decode legGeometry points here if we want to draw it
+          steps: bestItinerary.legs.map(leg => {
+            if (leg.mode === 'WALK') return `Walk to ${leg.to.name}`
+            return `Take ${leg.route?.shortName || 'Bus'} to ${leg.to.name}`
+          }),
+          legs: bestItinerary.legs // Store raw legs for MapView to render
+        }
+        set({ routePreview: route })
+      } else {
+        set({ routePreview: null, error: "No route found" })
+      }
+    } catch (error) {
+      console.error("Route planning failed:", error)
+      set({ error: "Route planning failed" })
+    }
   },
 
   refreshBuses: async (bounds) => {
@@ -199,13 +210,8 @@ export const useAppStore = create((set, get) => ({
         import('../api/busService').then(module => module.fetchVirtualBuses())
       ])
 
-      const currentBuses = get().buses
-
-      // Preserve driver buses (buses that start with "driver-")
-      const driverBuses = currentBuses.filter(bus => bus.id && bus.id.startsWith('driver-'))
-
-      // Combine fetched buses with driver buses and virtual buses
-      const allBuses = [...fetchedBuses, ...virtualBuses, ...driverBuses]
+      // Combine fetched buses and virtual buses (Driver buses are now part of virtual buses)
+      const allBuses = [...fetchedBuses, ...virtualBuses]
 
       set({
         buses: allBuses,
@@ -217,6 +223,51 @@ export const useAppStore = create((set, get) => ({
       set({ error: error.message })
     } finally {
       set({ isLoadingBuses: false })
+    }
+  },
+
+  // Driver Location Broadcasting
+  startDriverBroadcasting: () => {
+    const { driverProfile } = get()
+    if (!driverProfile || !driverProfile.routeId) return
+
+    // Clear existing interval if any
+    if (get().driverInterval) clearInterval(get().driverInterval)
+
+    const interval = setInterval(() => {
+      const { userLocation, isSharingLocation } = get()
+      if (!isSharingLocation || !userLocation) return
+
+      import('../api/busService').then(module => {
+        module.broadcastLocation({
+          user_id: `driver-${driverProfile.busNumber}`, // Unique ID for driver
+          route_id: driverProfile.routeId, // e.g. "10575"
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          speed: 30, // Simulate valid speed
+          role: 'driver'
+        })
+      })
+    }, 5000) // Broadcast every 5 seconds
+
+    set({ driverInterval: interval })
+  },
+
+  stopDriverBroadcasting: () => {
+    if (get().driverInterval) {
+      clearInterval(get().driverInterval)
+      set({ driverInterval: null })
+    }
+  },
+
+  toggleLocationSharing: () => {
+    const isSharing = !get().isSharingLocation
+    set({ isSharingLocation: isSharing })
+
+    if (isSharing) {
+      get().startDriverBroadcasting()
+    } else {
+      get().stopDriverBroadcasting()
     }
   },
 

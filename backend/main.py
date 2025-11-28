@@ -9,6 +9,7 @@ from typing import List, Dict
 import time
 import math
 import json
+from datetime import datetime
 
 app = FastAPI()
 
@@ -46,6 +47,7 @@ class UserReport(BaseModel):
     speed: float = 0.0 # Optional, default 0
     last_stop_id: str = None # Optional, for sequence check
     last_stop_time: float = None # Optional
+    role: str = "passenger" # passenger or driver
 
 class VirtualBus(BaseModel):
     id: str
@@ -58,6 +60,7 @@ class VirtualBus(BaseModel):
     last_updated: float
     delay_minutes: float = 0.0 # Estimated delay
     status: str = "On Time" # On Time, Late, Early
+    is_driver_bus: bool = False
 
 # In-memory stores
 USER_REPORTS: List[UserReport] = []
@@ -255,24 +258,67 @@ def cluster_reports():
     
     # 3. Cluster within each route
     for route_id, reports in reports_by_route.items():
-        # Simple clustering: If reports are within 50m, group them
-        processed = set()
+        # Separate drivers and passengers
+        drivers = [r for r in reports if r.role == 'driver']
+        passengers = [r for r in reports if r.role != 'driver']
         
-        for i, r1 in enumerate(reports):
-            if i in processed:
+        processed_passengers = set()
+        
+        # A. Create buses for Drivers (High Confidence)
+        for i, driver in enumerate(drivers):
+            # Find passengers near this driver
+            cluster = [driver]
+            for j, p in enumerate(passengers):
+                if j in processed_passengers:
+                    continue
+                dist = haversine_distance(driver.lat, driver.lng, p.lat, p.lng)
+                if dist < 100: # 100m radius for driver
+                    cluster.append(p)
+                    processed_passengers.add(j)
+            
+            # Create Virtual Bus from Driver
+            # Calculate delay based on driver's location
+            stop_id, delay = validate_user_and_calculate_delay(driver)
+            
+            status = "On Time"
+            if delay > 5:
+                status = f"Late {int(delay)} min"
+            elif delay < -2:
+                status = "Early"
+            
+            route_name = ROUTE_ID_TO_NAME_MAP.get(route_id, f"Route {route_id}")
+            
+            v_bus = VirtualBus(
+                id=f"vbus_driver_{route_id}_{int(current_time)}_{i}",
+                route_id=route_id,
+                route_name=route_name,
+                lat=driver.lat,
+                lng=driver.lng,
+                passenger_count=len(cluster) - 1, # Exclude driver from passenger count
+                confidence=1.0, # Driver = 100% confidence
+                last_updated=current_time,
+                delay_minutes=delay,
+                status=status,
+                is_driver_bus=True
+            )
+            new_virtual_buses.append(v_bus)
+
+        # B. Cluster remaining passengers
+        for i, r1 in enumerate(passengers):
+            if i in processed_passengers:
                 continue
                 
             cluster = [r1]
-            processed.add(i)
+            processed_passengers.add(i)
             
-            for j, r2 in enumerate(reports):
-                if j in processed:
+            for j, r2 in enumerate(passengers):
+                if j in processed_passengers:
                     continue
                 
                 dist = haversine_distance(r1.lat, r1.lng, r2.lat, r2.lng)
                 if dist < 50: # 50 meters
                     cluster.append(r2)
-                    processed.add(j)
+                    processed_passengers.add(j)
             
             if len(cluster) >= 1: 
                 avg_lat = sum(r.lat for r in cluster) / len(cluster)
@@ -281,7 +327,6 @@ def cluster_reports():
                 confidence = 1.0 if len(cluster) >= 2 else 0.5
                 
                 # Calculate average delay from reports in cluster
-                # We check if any report in the cluster has a valid stop match
                 total_delay = 0
                 delay_count = 0
                 
@@ -290,7 +335,6 @@ def cluster_reports():
                     if stop_id:
                         total_delay += delay
                         delay_count += 1
-                        # Boost confidence if validated against a stop
                         confidence = min(1.0, confidence + 0.3)
                 
                 avg_delay = total_delay / delay_count if delay_count > 0 else 0.0
@@ -313,11 +357,13 @@ def cluster_reports():
                     confidence=confidence,
                     last_updated=current_time,
                     delay_minutes=avg_delay,
-                    status=status
+                    status=status,
+                    is_driver_bus=False
                 )
                 new_virtual_buses.append(v_bus)
                 
     VIRTUAL_BUSES = new_virtual_buses
+
 
 @app.get("/")
 def read_root():

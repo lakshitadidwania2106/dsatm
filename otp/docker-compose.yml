@@ -1,0 +1,13 @@
+version: '3'
+services:
+  otp:
+    image: opentripplanner/opentripplanner:2.4.0
+    container_name: otp-server
+    volumes:
+      # Ensure your local './data' folder has the .pbf and .gtfs.zip files
+      - ./data:/var/opentripplanner
+    ports:
+      - "8080:8080"
+    # FIX: Use brackets [] to prevent the "Parameter error"
+    # This matches the tutorial: --build --save <directory>
+    command: ["--build", "--save", "/var/opentripplanner"]
