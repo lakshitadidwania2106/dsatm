@@ -1621,7 +1621,7 @@ nav a[href="/carpool"].active {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
+  }
 
 .carpool-input-section {
   background: var(--white);

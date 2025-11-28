@@ -86,9 +86,9 @@ export const SmoothBusMarker = ({ bus, isSelected, onSelect }) => {
 
                 {!isVirtual && (
                     <>
-                        {t('eta')}: {bus.eta}
-                        <br />
-                        {t('cost')}: {bus.cost}
+                {t('eta')}: {bus.eta}
+                <br />
+                {t('cost')}: {bus.cost}
                     </>
                 )}
             </Popup>

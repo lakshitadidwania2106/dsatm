@@ -31,10 +31,12 @@ export const VoiceCommandHandler = () => {
       return
     }
 
-    // "show me route from X to Y" or "route from X to Y" or "show route from X to Y"
-    const routeMatch = command.match(/show me route from (.+?) to (.+)/i) || 
-                      command.match(/route from (.+?) to (.+)/i) ||
-                      command.match(/show route from (.+?) to (.+)/i)
+    // "show me the route from X to Y" or similar variations
+    const routeMatch =
+      command.match(/show me (?:the )?route from (.+?) to (.+)/i) ||
+      command.match(/show (?:the )?route from (.+?) to (.+)/i) ||
+      command.match(/route from (.+?) to (.+)/i) ||
+      command.match(/navigate from (.+?) to (.+)/i)
     
     if (routeMatch) {
       const startLocation = routeMatch[1].trim()
